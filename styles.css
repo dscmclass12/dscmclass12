@@ -22,6 +22,7 @@
   --grad-hero:linear-gradient(180deg,rgba(13,15,20,0) 0%,rgba(13,15,20,0.7) 50%,#0D0F14 100%);
   --sh-sm:0 2px 8px rgba(0,0,0,0.4);
   --sh-md:0 8px 32px rgba(0,0,0,0.5);
+  --sh-lg:0 16px 48px rgba(0,0,0,0.6);
   --sh-glow:0 4px 24px rgba(212,168,83,0.15);
   --r-sm:8px;--r-md:12px;--r-lg:18px;--r-xl:24px;--r-full:9999px;
   --nav-h:66px;
