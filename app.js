@@ -11,7 +11,7 @@ const firebaseConfig = {
   databaseURL: "https://dscmclass123-default-rtdb.firebaseio.com",
   projectId: "dscmclass123",
   storageBucket: "dscmclass123.firebasestorage.app",
-  messagingSenderId: "23018462671",
+  messagingSenderId: "230184692671",
   appId: "1:230184692671:web:c0a42ca1fd0c39ab640f0a",
   measurementId: "G-8Q304W2HHY"
 };
@@ -38,7 +38,7 @@ const DEF = {
   },
   loaderCfg:{
     icon:'🎓', text:'Forever DSCM', sub:'Loading memories...',
-    creatorName:'Debangshu Sen', creatorLink:'https://instagram.com/debangshu_sen', copyright:'© 2024–2025 DSCM ALUMNI', globalFont:'Inter',
+    creatorName:'Debangshu Sen', creatorLink:'https://instagram.com/debangshu_sen', copyright:'© 2024–2025 DSCM ALUMNI', tagline:'All memories are preserved forever ❤️', globalFont:'Inter',
     stuSub:'The ones who made these years golden', galTitle:'Gallery', galSub:'Snapshots of our golden days', 
     memTitle:'Message Wall of Reflection', memSub:'A space to leave your final words, memories, and wishes.',
     heroCta:'Explore Our Memories →', introTitle:'Memories', introSub:'A collection of moments that defined us.',
@@ -46,7 +46,7 @@ const DEF = {
     visStu:true, visGal:true, visWall:true, visMatch:true, visYb:true
   },
   adminPassword:"admin123",
-  nextStuId:13,nextGalId:10,nextMemId:4,nextHeroSlideId:1,
+  nextStuId:3,nextGalId:10,nextMemId:4,nextHeroSlideId:1,
   heroSlides:[],
   yearbook:[
     {id:1, title:"The First Day",text:"Fresh faces...",img:"https://images.unsplash.com/photo-1523050854058-8df90110c8f1?w=600&q=80"}
@@ -71,8 +71,11 @@ function loadLive() {
     if(data) {
       D = data;
       applyLoaderUI();
+      applyHeroUI();       // ← apply saved hero backgrounds & text
       renderYearbook();
-      updateLayoutUI();
+      applyLayoutUI();     // ← was wrongly called as updateLayoutUI()
+      applyAppearanceUI();
+      applyFooterUI();
       if(curPage === 'hero') setupHeroScroll();
       toast('Live Sync Active ✅', 'ok');
     } else {
@@ -85,14 +88,6 @@ function loadLive() {
 // Initial Load
 document.addEventListener('DOMContentLoaded', () => {
   loadLive();
-  // Keep local shortcuts
-  document.addEventListener('keydown',e=>{
-    if(e.key==='Escape'){closeModal();closeLB();}
-    if(e.ctrlKey && e.key==='s'){
-      e.preventDefault();
-      save();
-    }
-  });
 });
 
 function applyLoaderUI(){
@@ -100,6 +95,11 @@ function applyLoaderUI(){
   const e=(id,val)=>{if(document.getElementById(id))document.getElementById(id).textContent=val;};
   e('plIcon',c.icon); e('plText',c.text); e('plSub',c.sub);
   
+  // Footer Sync
+  document.querySelectorAll('[id^="fCreator"]').forEach(el=>{ el.href=c.creatorLink||'#'; el.textContent=c.creatorName||'Debangshu Sen'; });
+  document.querySelectorAll('[id^="fCopy"]').forEach(el=> el.textContent=c.copyright||'© 2024–2025 DSCM ALUMNI');
+  document.querySelectorAll('[id^="fTagline"]').forEach(el=> el.textContent=c.tagline||'All memories are preserved forever ❤️');
+
   // Visibility Logic
   const tog=(sec,nav,vis)=>{
     const el=document.getElementById(sec); if(el) el.style.display=vis?'block':'none';
@@ -116,37 +116,7 @@ applyLoaderUI();
 // ====== NAVIGATION ======
 let curPage='hero';
 let lastHomeTap = 0;
-function navigateTo(id){
-  const now = Date.now();
-  if(id === 'hero'){
-    if(now - lastHomeTap < 300){ id = 'admin'; }
-    lastHomeTap = now;
-  }
-  if(curPage===id && id !== 'admin')return;
-  
-  // Page Transition Logic
-  document.querySelectorAll('.page').forEach(p=>{p.classList.remove('active');p.style.opacity='';p.style.transform='';});
-  if(id==='students')renderStudents();
-  if(id==='gallery'){renderGalleryCats();renderGallery();}
-  if(id==='memories')renderMemories();
-  
-  const pg=document.getElementById(id);
-  if(!pg) return;
-  
-  window.scrollTo({top:0, left:0, behavior:'instant'}); // FORCE INSTANT TOP
-  document.body.style.overflow = (id === 'hero') ? 'hidden' : 'auto'; // Hero handles its own scroll
-  
-  pg.style.opacity='0';pg.style.transform='translateY(18px)';
-  pg.classList.add('active');
-  curPage=id;
-  updateNav();
-  
-  setTimeout(()=>{
-    pg.style.transition='opacity .45s var(--ease),transform .45s var(--ease)';
-    pg.style.opacity='1';pg.style.transform='translateY(0)';
-    trigReveals(pg);
-  }, 10);
-}
+// navigateTo is defined below (single authoritative version)
 function initParticles(){
   if(document.getElementById('particleWrap')) return;
   const w=document.createElement('div');w.id='particleWrap';w.className='particle-wrap';
@@ -672,7 +642,6 @@ function applyHeroUI(){
             </div>
           </div>
         </div>
-        </div>
       </div>`).join('');
 }
 
@@ -771,7 +740,8 @@ function navigateTo(id){
   // Transitions
   document.querySelectorAll('.page').forEach(p=>{
     p.classList.remove('active');
-    p.style.opacity='0';
+    p.style.opacity='';
+    p.style.transform='';
   });
   
   if(target==='students')renderStudents();
@@ -781,10 +751,7 @@ function navigateTo(id){
   const pg=document.getElementById(target);
   if(!pg) return;
   
-  window.scrollTo(0,0);
-  pg.classList.add('active');
-  curPage=target;
-  updateNav();
+  window.scrollTo({top:0, left:0, behavior:'instant'});
   
   if(target === 'hero') {
     document.body.style.overflow = 'hidden';
@@ -793,9 +760,17 @@ function navigateTo(id){
     document.body.style.overflow = 'auto';
   }
   
+  const pw=document.getElementById('particleWrap');
+  if(pw) pw.style.display=(target==='hero')?'block':'none';
+  
+  pg.style.opacity='0'; pg.style.transform='translateY(18px)';
+  pg.classList.add('active');
+  curPage=target;
+  updateNav();
+  
   setTimeout(()=>{
-    pg.style.transition='opacity .5s ease';
-    pg.style.opacity='1';
+    pg.style.transition='opacity .45s var(--ease),transform .45s var(--ease)';
+    pg.style.opacity='1'; pg.style.transform='translateY(0)';
     trigReveals(pg);
   }, 10);
 }
@@ -813,7 +788,7 @@ function chgPass(){const p=document.getElementById('cfgNewPass').value;if(!p||p.
 function exportJSON(){const b=new Blob([JSON.stringify(D,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);
   a.download='dscm_data.json';a.click();URL.revokeObjectURL(a.href);toast('Exported 📦','ok');}
 function importJSON(){const f=document.getElementById('importFile').files[0];if(!f){toast('Select file','err');return;}
-  const r=new FileReader();r.onload=e=>{try{D=JSON.parse(e.target.result);save();renderAStu();renderAGal();renderAMem();renderAYb();loadMatchCfg();loadHeroCfg();renderAHeroSlides();loadSettingsCfg();applyLoaderUI();applyLayoutUI();applyAppearanceUI();renderYearbook();setupHeroScroll();toast('Imported ✅','ok');}catch{toast('Invalid JSON','err');}};r.readAsText(f);}
+  const r=new FileReader();r.onload=e=>{try{D=JSON.parse(e.target.result);save();renderAStu();renderAGal();renderAMem();renderAYb();loadMatchCfg();loadHeroCfg();renderAHeroSlides();loadSettingsCfg();applyLoaderUI();applyHeroUI();applyLayoutUI();applyAppearanceUI();applyFooterUI();renderYearbook();setupHeroScroll();toast('Imported ✅','ok');}catch{toast('Invalid JSON','err');}};r.readAsText(f);}
 
 // ====== TOAST ======
 function toast(msg,type='ok'){const w=document.getElementById('toastWrap');const t=document.createElement('div');t.className=`toast-item ${type}`;t.textContent=msg;
@@ -824,8 +799,14 @@ function animNums(){animN('cntStudents',D.students.filter(s=>s.visible!==false).
 function animN(id,target,dur){const el=document.getElementById(id);if(!el)return;let st=0;const step=ts=>{if(!st)st=ts;const p=Math.min((ts-st)/dur,1);el.textContent=Math.floor(p*target);if(p<1)requestAnimationFrame(step);};requestAnimationFrame(step);}
 
 // ====== KEYBOARD ======
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeLB();}
-  if(document.getElementById('lightbox').classList.contains('open')){if(e.key==='ArrowLeft')lbPrev();if(e.key==='ArrowRight')lbNext();}});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closeModal();closeLB();}
+  if(e.ctrlKey && e.key==='s'){e.preventDefault();save();}
+  if(document.getElementById('lightbox').classList.contains('open')){
+    if(e.key==='ArrowLeft')lbPrev();
+    if(e.key==='ArrowRight')lbNext();
+  }
+});
 
 // ====== INIT ======
 document.addEventListener('DOMContentLoaded',()=>{
@@ -928,17 +909,17 @@ function addYbPage(){
     img: "https://images.unsplash.com/photo-1540479859555-17af45c78602?w=800&q=80"
   });
   D.yearbook = yb;
-  saveData();
+  save();
   renderYearbook();
-  renderAdminYb();
+  renderAYb();
 }
 
 function deleteYbPage(id){
   const yb = D.yearbook || DEF.yearbook;
   D.yearbook = yb.filter(p => p.id !== id);
-  saveData();
+  save();
   renderYearbook();
-  renderAdminYb();
+  renderAYb();
 }
 
 function updateYbPage(id, field, val){
@@ -946,7 +927,7 @@ function updateYbPage(id, field, val){
   const p = yb.find(item => item.id === id);
   if(p) p[field] = val;
   D.yearbook = yb;
-  saveData();
+  save();
   renderYearbook();
 }
 
@@ -983,23 +964,37 @@ function renderAYb(){
 
 function applyFooterUI(){
   const c=D.loaderCfg||DEF.loaderCfg;
+  const name = c.creatorName||'Debangshu Sen';
+  const link = c.creatorLink||'https://instagram.com/debangshu_sen';
+  const copy = c.copyright||'© 2024–2025 DSCM ALUMNI';
+  const tag  = c.tagline||'All memories are preserved forever ❤️';
+
+  // 1️⃣ Update dynamically-created footers on non-hero/non-admin pages
   document.querySelectorAll('.site-footer').forEach(f=>f.remove());
   document.querySelectorAll('.page').forEach(pg=>{
     if(pg.id!=='admin' && pg.id!=='hero'){
-      const f=document.createElement('div');f.className='site-footer container';
+      const f=document.createElement('div');f.className='site-footer';
       f.style.cssText='text-align:center; padding:40px 20px 120px;';
-      
+
       const a=document.createElement('a');a.className='site-footer-link';a.target='_blank';
-      a.style.cssText='display:block; font-family:var(--f-hand); font-size:28px; color:var(--gold); text-decoration:none; margin-bottom:12px;';
-      a.textContent='Made by Debangshu Sen';a.href=c.creatorLink||'https://instagram.com/debangshu_sen';
-      
+      a.style.cssText='display:block;font-family:var(--f-hand);font-size:28px;color:var(--gold);text-decoration:none;margin-bottom:12px;';
+      a.textContent='Made by '+name; a.href=link;
+
       const cp=document.createElement('div');cp.className='site-footer-copy';
-      cp.style.cssText='font-size:12px; color:#666; letter-spacing:1.5px; text-transform:uppercase; line-height:1.8;';
-      cp.innerHTML=`${c.copyright||'© 2024–2025 DSCM ALUMNI'}<br><span style="color:#888;">${c.tagline||'All memories are preserved forever ❤️'}</span>`;
-      
+      cp.style.cssText='font-size:12px;color:#666;letter-spacing:1.5px;text-transform:uppercase;line-height:1.8;';
+      cp.innerHTML=`${copy}<br><span style="color:#888;">${tag}</span>`;
+
       f.appendChild(a);f.appendChild(cp);
-      const inner = pg.querySelector('.inner-page');
+      const inner=pg.querySelector('.inner-page');
       if(inner) inner.appendChild(f); else pg.appendChild(f);
     }
   });
+
+  // 2️⃣ Update the hero section's static footer (inside hs-3)
+  const heroCreator = document.getElementById('fCreatorHero');
+  if(heroCreator){ heroCreator.textContent='Made by '+name; heroCreator.href=link; }
+  const heroCopy = document.getElementById('fCopyHero');
+  if(heroCopy) heroCopy.textContent=copy;
+  const heroTag = document.getElementById('fTaglineHero');
+  if(heroTag) heroTag.textContent=tag;
 }
