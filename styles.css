@@ -229,6 +229,21 @@ select.field{appearance:none}
 .social-btn.ig{background:linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);box-shadow:0 4px 14px rgba(220, 39, 67, 0.2)}
 .social-btn.fb{background:#1877F2;box-shadow:0 4px 14px rgba(24, 119, 242, 0.2)}
 
+/* === DM MESSAGING === */
+.dm-section{margin-top:18px;text-align:left;width:100%}
+.dm-toggle-btn{width:100%;padding:11px;background:var(--glass);border:1px solid var(--border);border-radius:var(--r-md);color:var(--gold);font-size:14px;font-weight:600;transition:all .3s;margin-bottom:10px}
+.dm-toggle-btn:hover{background:rgba(212,168,83,0.1);border-color:var(--gold)}
+.dm-thread{display:flex;flex-direction:column;gap:10px;margin-top:10px;max-height:240px;overflow-y:auto}
+.dm-msg{background:var(--card);border:1px solid var(--border);border-radius:var(--r-md);padding:12px 14px;font-size:13px}
+.dm-from{color:var(--txt2);margin-bottom:4px}
+.dm-from b{color:var(--txt)}
+.dm-text{color:var(--txt);line-height:1.5;margin-bottom:6px}
+.dm-reply{background:rgba(212,168,83,0.08);border-left:3px solid var(--gold);border-radius:0 var(--r-sm) var(--r-sm) 0;padding:8px 10px;color:var(--txt);margin-top:6px;font-size:12px;line-height:1.5}
+.dm-reply b{color:var(--gold)}
+.dm-pending{font-size:11px;color:var(--txt3);font-style:italic;margin-top:4px}
+.dm-time{font-size:10px;color:var(--txt3);margin-left:6px}
+.dm-empty{text-align:center;color:var(--txt3);font-size:13px;padding:14px 0}
+
 /* === GALLERY === */
 .gallery-cats{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin-bottom:18px;position:relative;z-index:1}
 .gcat{padding:7px 16px;background:var(--glass);border:1px solid var(--border);border-radius:var(--r-full);font-size:12px;color:var(--txt2);transition:all .3s}
