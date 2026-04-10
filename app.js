@@ -33,12 +33,12 @@ const DEF = {
   matchCfg:{mode:"random",fixedId:null,biasId:null,biasWeight:5,messages:["You two were meant to be! 💕","Match made in heaven! ✨"],excludeIds:[]},
   heroCfg:{
     bg1:'https://images.unsplash.com/photo-1523050854058-8df90110c8f1?w=1200&q=80', tag:'Class 12 · Batch 2025–26', title:'Forever <span class="gold">DSCM</span>', sub:'We came as strangers, left as memories.', school:'DSCM English Medium Higher Secondary School',
-    bg2:'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=1200&q=80', story1:'"Every classroom held a story..."', storySub:'Laughter in the corridors, friendships in the benches',
-    bg3:'https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=1200&q=80', story2:'"And every goodbye became a memory ❤️"'
+    bg2:'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=1200&q=80', story1:'"Every classroom held a story..."', storySub:'Laughter in the corridors, friendships in the benches', cap2:'Memories 📸',
+    bg3:'https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=1200&q=80', story2:'"And every goodbye became a memory ❤️"', cap3:'Farewell ✨'
   },
   loaderCfg:{
     icon:'🎓', text:'Forever DSCM', sub:'Loading memories...',
-    creatorName:'Debangshu Sen', creatorLink:'https://instagram.com/debangshu_sen', copyright:'© 2024–2025 DSCM ALUMNI', tagline:'All memories are preserved forever ❤️', globalFont:'Inter',
+    creatorName:'Debangshu Sen', creatorLink:'https://www.instagram.com/debangshusen15', copyright:'CLASS 12 ( 2025-26 )', tagline:'All memories are preserved forever ❤️', globalFont:'Inter',
     stuSub:'The ones who made these years golden', galTitle:'Gallery', galSub:'Snapshots of our golden days', 
     memTitle:'Message Wall of Reflection', memSub:'A space to leave your final words, memories, and wishes.',
     heroCta:'Explore Our Memories →', introTitle:'Memories', introSub:'A collection of moments that defined us.',
@@ -96,8 +96,8 @@ function applyLoaderUI(){
   e('plIcon',c.icon); e('plText',c.text); e('plSub',c.sub);
   
   // Footer Sync
-  document.querySelectorAll('[id^="fCreator"]').forEach(el=>{ el.href=c.creatorLink||'#'; el.textContent=c.creatorName||'Debangshu Sen'; });
-  document.querySelectorAll('[id^="fCopy"]').forEach(el=> el.textContent=c.copyright||'© 2024–2025 DSCM ALUMNI');
+  document.querySelectorAll('[id^="fCreator"]').forEach(el=>{ el.href=c.creatorLink||'https://www.instagram.com/debangshusen15'; el.textContent='Made by '+(c.creatorName||'Debangshu Sen'); });
+  document.querySelectorAll('[id^="fCopy"]').forEach(el=> el.textContent=c.copyright||'CLASS 12 ( 2025-26 )');
   document.querySelectorAll('[id^="fTagline"]').forEach(el=> el.textContent=c.tagline||'All memories are preserved forever ❤️');
 
   // Visibility Logic
@@ -552,6 +552,8 @@ function loadHeroCfg(){
   document.getElementById('cfgHSchool').value=h.school; document.getElementById('cfgHeroBg2').value=h.bg2;
   document.getElementById('cfgHStory1').value=h.story1; document.getElementById('cfgHStorySub').value=h.storySub;
   document.getElementById('cfgHeroBg3').value=h.bg3; document.getElementById('cfgHStory2').value=h.story2;
+  if(document.getElementById('cfgHCap2')) document.getElementById('cfgHCap2').value=h.cap2||'Memories 📸';
+  if(document.getElementById('cfgHCap3')) document.getElementById('cfgHCap3').value=h.cap3||'Farewell ✨';
 }
 function saveHeroCfg(){
   D.heroCfg={
@@ -560,8 +562,8 @@ function saveHeroCfg(){
     bg1:document.getElementById('cfgHeroBg1').value, tag:document.getElementById('cfgHTag').value,
     title:document.getElementById('cfgHTitle').value, sub:document.getElementById('cfgHSub').value,
     school:document.getElementById('cfgHSchool').value, bg2:document.getElementById('cfgHeroBg2').value,
-    story1:document.getElementById('cfgHStory1').value, storySub:document.getElementById('cfgHStorySub').value,
-    bg3:document.getElementById('cfgHeroBg3').value, story2:document.getElementById('cfgHStory2').value
+    story1:document.getElementById('cfgHStory1').value, storySub:document.getElementById('cfgHStorySub').value, cap2:document.getElementById('cfgHCap2')?document.getElementById('cfgHCap2').value:'Memories 📸',
+    bg3:document.getElementById('cfgHeroBg3').value, story2:document.getElementById('cfgHStory2').value, cap3:document.getElementById('cfgHCap3')?document.getElementById('cfgHCap3').value:'Farewell ✨'
   };
   save(); applyHeroUI(); setupHeroScroll(); toast('Hero Settings saved','ok');
 }
@@ -623,8 +625,8 @@ function applyHeroUI(){
   };
   
   im('heroBg1',h.bg1); e('hTag',h.tag); e('hTitle',h.title); e('hSub',h.sub); e('hSchool',h.school);
-  im('heroBg2',h.bg2); e('hStory1',h.story1); e('hStorySub',h.storySub);
-  im('heroBg3',h.bg3); e('hStory2',h.story2);
+  im('heroBg2',h.bg2); e('hStory1',h.story1); e('hStorySub',h.storySub); e('heroCap2',h.cap2||'Memories 📸');
+  im('heroBg3',h.bg3); e('hStory2',h.story2); e('heroCap3',h.cap3||'Farewell ✨');
     const c=document.getElementById('extraHeroSlidesContainer');
     if(c) c.innerHTML=(D.heroSlides||[]).map(s=>`
       <div class="hero-slide tl-slide hs-extra" id="heroSlideEx_${s.id}">
@@ -965,8 +967,8 @@ function renderAYb(){
 function applyFooterUI(){
   const c=D.loaderCfg||DEF.loaderCfg;
   const name = c.creatorName||'Debangshu Sen';
-  const link = c.creatorLink||'https://instagram.com/debangshu_sen';
-  const copy = c.copyright||'© 2024–2025 DSCM ALUMNI';
+  const link = c.creatorLink||'https://www.instagram.com/debangshusen15';
+  const copy = c.copyright||'CLASS 12 ( 2025-26 )';
   const tag  = c.tagline||'All memories are preserved forever ❤️';
 
   // 1️⃣ Update dynamically-created footers on non-hero/non-admin pages
