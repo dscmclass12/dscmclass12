@@ -75,7 +75,7 @@
     <div class="hero-content" id="heroContent3">
       <div class="tl-col-txt">
         <h2 class="tl-title" id="hStory2">"And every goodbye became a memory ❤️"</h2>
-        <br/><button class="hero-cta" onclick="navigateTo('students')">Explore Our Memories →</button>
+        <br/><button class="hero-cta" id="btnHeroCta" onclick="navigateTo('gallery')">Explore Our Memories →</button>
         <div class="site-footer" style="padding:60px 20px 100px; margin-top: 60px;">
           <a href="https://www.instagram.com/debangshusen15" id="fCreatorHero" target="_blank" class="site-footer-link" style="font-family:var(--f-hand); font-size:28px !important;">Made by Debangshu Sen</a>
           <div class="site-footer-copy"><span id="fCopyHero">CLASS 12 ( 2025-26 )</span><br><span id="fTaglineHero">All memories are preserved forever ❤️</span></div>
@@ -250,7 +250,7 @@
 
 <!-- ============ ADMIN ============ -->
 <section id="admin" class="page inner-page">
-  <div class="admin-wrap" id="adminWrap">
+  <div class="admin-wrap" id="adminWrap" style="padding-top: 50px;">
     <!-- Login -->
     <div class="admin-login" id="adminLogin">
       <div class="admin-login-box">
@@ -292,6 +292,7 @@
           <select id="fStuGender" class="field"><option value="">Gender</option><option value="male">Male</option><option value="female">Female</option></select>
           <input type="text" id="fStuQuote" placeholder="Quote / Bio" class="field"/>
           <input type="text" id="fStuImg" placeholder="Photo URL" class="field"/>
+          <input type="text" id="fStuMedia" placeholder="Personal Photos / Drive Link (Optional)" class="field"/>
           <input type="text" id="fStuIg" placeholder="Instagram Username (optional)" class="field"/>
           <input type="text" id="fStuFb" placeholder="Facebook Profile URL (optional)" class="field"/>
           <div class="ff-btns"><button class="btn-sm-gold" onclick="addStu()">Save</button><button class="btn-sm-ghost" onclick="cancelStuForm()">Cancel</button></div>
@@ -306,7 +307,7 @@
           <input type="hidden" id="fGalId" value=""/>
           <select id="fGalType" class="field"><option value="image">Image</option><option value="video">Video (MP4)</option></select>
           <input type="text" id="fGalUrl" placeholder="Media URL (Image or MP4 link)" class="field"/>
-          <input type="text" id="fGalCap" placeholder="Caption" class="field"/>
+          <input type="text" id="fGalCap" placeholder="Caption (Applied to all if batch uploading)" class="field"/>
           <select id="fGalCat" class="field"><option value="School Days">School Days</option><option value="Farewell">Farewell</option><option value="Events">Events</option><option value="Memories">Memories</option></select>
           <div class="ff-btns"><button class="btn-sm-gold" onclick="addGal()">Save</button><button class="btn-sm-ghost" onclick="cancelGalForm()">Cancel</button></div>
         </div>
@@ -468,12 +469,12 @@
           </select>
           <hr/>
           <h3 style="margin-top:16px;">Section Visibility</h3>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px;">
-            <label class="toggle-wrap"><input type="checkbox" id="cfgVisStu" onchange="saveSettingsCfg()"/> 👥 Students</label>
-            <label class="toggle-wrap"><input type="checkbox" id="cfgVisGal" onchange="saveSettingsCfg()"/> 🖼️ Gallery</label>
-            <label class="toggle-wrap"><input type="checkbox" id="cfgVisWall" onchange="saveSettingsCfg()"/> ✉️ Wall</label>
-            <label class="toggle-wrap"><input type="checkbox" id="cfgVisMatch" onchange="saveSettingsCfg()"/> 💖 Match</label>
-            <label class="toggle-wrap"><input type="checkbox" id="cfgVisYb" onchange="saveSettingsCfg()"/> 📖 Yearbook</label>
+          <div class="adp-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px;">
+            <label class="cb-wrap"><input type="checkbox" id="cfgVisStu" onchange="saveSettingsCfg()"/> Enable Students Section</label>
+            <label class="cb-wrap"><input type="checkbox" id="cfgVisGal" onchange="saveSettingsCfg()"/> Enable Gallery Section</label>
+            <label class="cb-wrap"><input type="checkbox" id="cfgVisWall" onchange="saveSettingsCfg()"/> Enable Memory Wall</label>
+            <label class="cb-wrap"><input type="checkbox" id="cfgVisMatch" onchange="saveSettingsCfg()"/> Enable Match Feature</label>
+            <label class="cb-wrap"><input type="checkbox" id="cfgVisYb" onchange="saveSettingsCfg()"/> Enable Yearbook</label>
           </div>
           <hr/>
           <h3 style="margin-top:16px;">Section Content</h3>
@@ -483,6 +484,8 @@
           <input type="text" id="cfgGalTitle" class="field" placeholder="Gallery" onchange="saveSettingsCfg()"/>
           <label>Gallery Subtitle</label>
           <input type="text" id="cfgGalSub" class="field" placeholder="Snapshots of our golden days" onchange="saveSettingsCfg()"/>
+          <label>Full Photo Archive Link (Google Drive / Photos)</label>
+          <input type="text" id="cfgArchiveLink" class="field" placeholder="Paste Google Drive/Photos link here" onchange="saveSettingsCfg()"/>
           <label>Memory Wall Title</label>
           <input type="text" id="cfgMemTitle" class="field" placeholder="Message Wall of Reflection" onchange="saveSettingsCfg()"/>
           <label>Memory Wall Description</label>
@@ -500,27 +503,23 @@
           <input type="text" id="cfgYbTitle" class="field" placeholder="CLASS 12 BATCH" onchange="saveSettingsCfg()"/>
           <label>Yearbook Cover Subtitle</label>
           <input type="text" id="cfgYbSub" class="field" placeholder="(2025-26)" onchange="saveSettingsCfg()"/>
-          <label>Yearbook Hint Text</label>
+          <label>Yearbook Cover Hint</label>
           <input type="text" id="cfgYbHint" class="field" placeholder="Click to flip the story 📖" onchange="saveSettingsCfg()"/>
-          <label>Position of "Batchmates" Section</label>
-          <select id="cfgStuPos" class="field" onchange="saveSettingsCfg()">
-            <option value="1">Directly after Hero</option>
-            <option value="2">After Memories/Yearbook</option>
-            <option value="3">After Gallery</option>
-            <option value="4">Bottom of page</option>
-          </select>
-        </div>
-        <div class="settings-box" style="margin-top:12px;">
-          <h3>System Settings</h3>
-          <label>Change Password</label>
-          <input type="password" id="cfgNewPass" class="field" placeholder="New password"/>
-          <button class="btn-sm-gold" onclick="chgPass()">Update</button>
+
           <hr/>
-          <label>Export Data</label>
-          <button class="btn-sm-ghost" onclick="exportJSON()">Download JSON</button>
-          <label>Import Data</label>
-          <input type="file" id="importFile" accept=".json" class="field"/>
-          <button class="btn-sm-ghost" onclick="importJSON()">Import</button>
+          <h3 style="margin-top:16px; color:var(--rose)">Danger Zone</h3>
+          <label>Change Admin Password</label>
+          <input type="text" id="cfgNewPass" class="field" placeholder="New Password"/>
+          <button class="btn-sm-gold" onclick="chgPass()" style="margin-bottom:12px">Update Password</button>
+          
+          <div style="background:rgba(232, 83, 108, 0.1); border:1px solid rgba(232, 83, 108, 0.3); padding:16px; border-radius:12px; margin-top:20px;">
+            <p style="color:var(--txt2); font-size:13px; margin-bottom:12px">Data Backup & Restore</p>
+            <div style="display:flex; gap:10px;">
+              <button class="btn-sm-ghost" style="flex:1" onclick="exportJSON()">Export</button>
+              <button class="btn-sm-ghost" style="flex:1; border-color:var(--rose); color:var(--rose)" onclick="document.getElementById('importFile').click()">Import</button>
+              <input type="file" id="importFile" style="display:none" accept=".json" onchange="importJSON()"/>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -561,6 +560,7 @@
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 
 <script src="app.js"></script>
 </body>
