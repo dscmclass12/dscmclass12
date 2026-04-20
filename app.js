@@ -48,7 +48,7 @@ const DEF = {
     archiveLink:'',
     visStu:true, visGal:true, visWall:true, visMatch:true, visYb:true
   },
-  adminPassword:"admin123",
+  adminPassword:"a%$5044444$$",
   nextStuId:3,nextGalId:10,nextMemId:4,nextHeroSlideId:1,
   heroSlides:[],
   yearbook:[
@@ -73,6 +73,7 @@ function loadLive() {
     const data = snap.val();
     if(data) {
       D = data;
+      if (typeof ensureCodes === 'function') ensureCodes();
       applyLoaderUI();
       applyHeroUI();       // ← apply saved hero backgrounds & text
       renderYearbook();
@@ -227,11 +228,15 @@ function openStu(id){
     </div>`;
   document.getElementById('studentModal').classList.add('open');
   document.body.style.overflow='hidden';
+  history.pushState({modalOpen: true}, '');
 }
 
-function closeModal(){
-  document.getElementById('studentModal').classList.remove('open');
+function closeModal(fromPopState = false){
+  const m = document.getElementById('studentModal');
+  if(!m.classList.contains('open')) return;
+  m.classList.remove('open');
   document.body.style.overflow='';
+  if(fromPopState !== true) history.back();
 }
 
 // ====== GALLERY ======
@@ -248,7 +253,8 @@ function setGalCat(c){galCat=c;renderGalleryCats();renderGallery();}
 function renderGallery(){
   const c = D.loaderCfg || DEF.loaderCfg;
   const list=galCat==='All'?D.gallery:D.gallery.filter(g=>(g.cat||'Uncategorized')===galCat);
-  let html = list.map((g,i)=>`
+  const activeList = list.filter(g => g.approved !== false);
+  let html = activeList.map((g,i)=>`
     <div class="gal-item" style="animation-delay:${i*.05}s" onclick="openLB(${D.gallery.indexOf(g)})">
       ${g.type==='video'?`<video src="${g.url}" preload="metadata" muted playsinline></video><div class="vid-icon">▶ Video</div>`:`<img src="${g.url}" alt="${g.caption}" loading="lazy"/>`}
       <div class="gc">${g.caption}</div>
@@ -272,8 +278,17 @@ function openLB(i){lbI=i;const g=D.gallery[i];
   if(g.type==='video'){img.style.display='none';vid.style.display='block';vid.src=g.url;vid.play();}
   else{vid.style.display='none';vid.pause();img.style.display='block';img.src=g.url;}
   document.getElementById('lbCap').textContent=g.caption;
-  document.getElementById('lightbox').classList.add('open');document.body.style.overflow='hidden';}
-function closeLB(){document.getElementById('lightbox').classList.remove('open');document.body.style.overflow='';document.getElementById('lbVid').pause();}
+  document.getElementById('lightbox').classList.add('open');document.body.style.overflow='hidden';
+  history.pushState({lbOpen: true}, '');
+}
+function closeLB(fromPopState = false){
+  const lb = document.getElementById('lightbox');
+  if(!lb.classList.contains('open')) return;
+  lb.classList.remove('open');
+  document.body.style.overflow='';
+  document.getElementById('lbVid').pause();
+  if(fromPopState !== true) history.back();
+}
 function lbPrev(){lbI=(lbI-1+D.gallery.length)%D.gallery.length;updLB();}
 function lbNext(){lbI=(lbI+1)%D.gallery.length;updLB();}
 function updLB(){const img=document.getElementById('lbImg'),vid=document.getElementById('lbVid');
@@ -282,6 +297,34 @@ function updLB(){const img=document.getElementById('lbImg'),vid=document.getElem
     if(g.type==='video'){img.style.display='none';vid.style.display='block';vid.src=g.url;vid.play();vid.style.opacity='1';vid.style.transform='scale(1)';}
     else{vid.style.display='none';vid.pause();img.style.display='block';img.src=g.url;img.style.opacity='1';img.style.transform='scale(1)';}
     document.getElementById('lbCap').textContent=g.caption;},180);}
+
+async function downloadCurrentMedia() {
+    const g = D.gallery[lbI];
+    if(!g || !g.url) return;
+    try {
+        toast('Downloading... ⏳', 'ok');
+        const res = await fetch(g.url);
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const ext = g.type === 'video' ? 'mp4' : 'jpg';
+        a.download = `DSCM_Memory_${g.id}_${Date.now()}.${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+    } catch(e) {
+        // Fallback for CORS issues
+        const a = document.createElement('a');
+        a.href = g.url;
+        a.target = '_blank';
+        a.download = `DSCM_Memory_${g.id}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    }
+}
 
 // Touch swipe
 let tx=0;
@@ -411,16 +454,89 @@ function confetti(){
 
 // ====== ADMIN ======
 let isAdm=false;
-function doAdminLogin(){
-  const u=document.getElementById('aUser').value.trim(),p=document.getElementById('aPass').value;
-  if(u==='admin'&&p===D.adminPassword){isAdm=true;
-    document.getElementById('adminLogin').style.display='none';document.getElementById('adminDash').style.display='block';
-    document.getElementById('alErr').textContent='';renderAStu();renderAGal();renderAMem();loadMatchCfg();loadHeroCfg();renderAHeroSlides();loadSettingsCfg();toast('Welcome Admin! 👋','ok');
-  }else{document.getElementById('alErr').textContent='Invalid credentials';
-    const c=document.querySelector('.admin-login-box');c.style.animation='none';c.offsetHeight;c.style.animation='shake .4s ease';}
+let adminRole=null;
+let loggedInUser=null;
+
+function ensureCodes() {
+   let updated = false;
+   D.students.forEach(s => {
+      if(!s.code) {
+         s.code = Math.random().toString(36).substring(2,8).toUpperCase();
+         updated = true;
+      }
+   });
+   if(updated) save();
 }
-function doAdminLogout(){isAdm=false;document.getElementById('adminLogin').style.display='flex';document.getElementById('adminDash').style.display='none';
-  document.getElementById('aUser').value='';document.getElementById('aPass').value='';toast('Logged out','ok');}
+
+function doAdminLogin(){
+  const u=document.getElementById('aUser').value.trim().toLowerCase();
+  const p=document.getElementById('aPass').value.trim();
+  
+  if(u==='antiphile' && p===D.adminPassword){
+     isAdm=true; adminRole='full'; loggedInUser=null;
+     showAdminDash(); return;
+  }
+  
+  const student = D.students.find(s => s.name.toLowerCase() === u && (s.code === p || p === D.adminPassword));
+  if(student) {
+     isAdm=true; loggedInUser=student;
+     const lowerName = student.name.toLowerCase();
+     if(lowerName.includes("debangshu sen") || lowerName.includes("mriganka basak")) {
+        adminRole='full';
+     } else if(lowerName.includes("biprajit basak")) {
+        adminRole='limited';
+     } else {
+        adminRole='student';
+     }
+     showAdminDash();
+  } else {
+     document.getElementById('alErr').textContent='Invalid credentials or code';
+     const c=document.querySelector('.admin-login-box');
+     c.style.animation='none';c.offsetHeight;c.style.animation='shake .4s ease';
+  }
+}
+
+function showAdminDash() {
+    document.getElementById('adminLogin').style.display='none';
+    document.getElementById('adminDash').style.display='block';
+    
+    document.querySelectorAll('.adtab').forEach(t => {
+       const tabId = t.getAttribute('data-tab');
+       if(!tabId) return; // for previous tabs without data-tab
+       let show = true;
+       if (adminRole === 'limited') {
+           if (tabId !== 'adt-gallery' && tabId !== 'adt-portal') show = false;
+       } else if (adminRole === 'student') {
+           if (tabId !== 'adt-portal') show = false;
+       } else {
+           if (tabId === 'adt-portal') show = false;
+       }
+       t.style.display = show ? 'inline-block' : 'none';
+    });
+
+    let defaultTab = 'adt-students';
+    if (adminRole === 'student') {
+        defaultTab = 'adt-portal';
+        renderPortal();
+    } else if (adminRole === 'limited') {
+        defaultTab = 'adt-gallery';
+        renderAStu(); renderAGal(); renderAMem(); renderAYb(); loadMatchCfg(); loadHeroCfg(); renderAHeroSlides(); loadSettingsCfg();
+    } else {
+        renderAStu(); renderAGal(); renderAMem(); renderAYb(); loadMatchCfg(); loadHeroCfg(); renderAHeroSlides(); loadSettingsCfg();
+    }
+    
+    adTab(defaultTab);
+    document.getElementById('alErr').textContent='';
+    toast('Welcome ' + (loggedInUser ? loggedInUser.name.split(' ')[0] : 'Admin') + '! 👋', 'ok');
+}
+
+function doAdminLogout(){
+   isAdm=false; adminRole=null; loggedInUser=null;
+   document.getElementById('adminLogin').style.display='flex';
+   document.getElementById('adminDash').style.display='none';
+   document.getElementById('aUser').value='';document.getElementById('aPass').value='';
+   toast('Logged out','ok');
+}
 
 function adTab(id){
   document.querySelectorAll('.adtab').forEach(t=>t.classList.remove('active'));
@@ -494,10 +610,29 @@ function moveStuDown(id){
 }
 function delStu(id){if(!confirm('Remove?'))return;D.students=D.students.filter(s=>s.id!=id);save();renderAStu();toast('Removed','ok');}
 function togVisStu(id){const s=D.students.find(x=>x.id==id);if(s){s.visible=!s.visible;save();renderAStu();toast(s.visible?'Shown':'Hidden','ok');}}
+function reviewEdits(id) {
+    const s = D.students.find(x=>x.id==id);
+    if(!s || !s.pendingProfile) return;
+    const p = s.pendingProfile;
+    const msg = `Approve changes for ${s.name}?\n\nName: ${p.name}\nNick: ${p.nick}\nGender: ${p.gender}\nQuote: ${p.quote}\n` +
+                (p.newCode ? `\n⚠️ NEW LOGIN CODE REQUESTED: ${p.newCode}\n` : '') + `\nSelect OK to Approve, or Cancel to review further.`;
+    if(confirm(msg)) {
+        s.name=p.name; s.nick=p.nick; s.gender=p.gender; s.quote=p.quote; s.img=p.img; s.stuMedia=p.stuMedia; s.ig=p.ig; s.fb=p.fb;
+        if(p.newCode) s.code = p.newCode;
+        delete s.pendingProfile; save(); renderAStu(); renderStudents(); toast('Changes approved! ✅', 'ok');
+    } else {
+        if(confirm('Do you want to REJECT and delete these pending edits?')) {
+            delete s.pendingProfile; save(); renderAStu(); toast('Edits rejected', 'err');
+        }
+    }
+}
+
 function renderAStu(){document.getElementById('adStuList').innerHTML=D.students.map((s, i)=>`
-  <div class="adrow" style="opacity:${s.visible===false?'.5':'1'}">
-    <div class="ar-info"><div class="ar-ico">${s.img?`<img src="${s.img}"/>`  :em(s.gender)}</div><div class="ar-nm">${s.name} (${s.nick})</div></div>
+  <div class="adrow" style="opacity:${s.visible===false?'.5':'1'}; ${s.pendingProfile?'border-left: 4px solid var(--gold); border-radius: 4px;':''}">
+    <div class="ar-info"><div class="ar-ico">${s.img?`<img src="${s.img}"/>`  :em(s.gender)}</div><div class="ar-nm">${s.name} (${s.nick}) ${s.pendingProfile?'<span style="color:var(--gold);font-size:12px;margin-left:6px;">[Edits Pending]</span>':''}</div></div>
     <div class="ar-actions">
+      ${s.pendingProfile?`<button class="ar-btn ok" onclick="reviewEdits(${s.id})" title="Review Edits">🔔</button>`:''}
+      ${adminRole==='full'?`<span style="font-size:12px; color:var(--txt3); margin-right:10px;">Code: <strong style="color:var(--gold)">${s.code||'—'}</strong></span>`:''}
       <button class="ar-btn" onclick="moveStuUp(${s.id})" title="Move Up" ${i===0?'style="opacity:0.3;pointer-events:none"':''}>↑</button>
       <button class="ar-btn" onclick="moveStuDown(${s.id})" title="Move Down" ${i===D.students.length-1?'style="opacity:0.3;pointer-events:none"':''}>↓</button>
       <button class="ar-btn" onclick="editStu(${s.id})" title="Edit">✏️</button>
@@ -553,10 +688,15 @@ function moveGalDown(id){
   }
 }
 function delGal(id){if(!confirm('Remove?'))return;D.gallery=D.gallery.filter(g=>g.id!=id);save();renderAGal();toast('Removed','ok');}
+function approveGal(id){
+    const g=D.gallery.find(x=>x.id==id);
+    if(g) { g.approved=true; save(); renderAGal(); renderGallery(); toast('Approved','ok'); }
+}
 function renderAGal(){document.getElementById('adGalList').innerHTML=D.gallery.map((g,i)=>`
-  <div class="adrow"><div class="ar-info"><div class="ar-ico" style="border-radius:6px">${g.type==='video'?`<video src="${g.url}" muted preload="metadata" style="width:100%;height:100%;object-fit:cover;"></video>`:`<img src="${g.url}" style="border-radius:6px"/>`}</div>
-    <div class="ar-nm">${g.caption} <span style="opacity:0.6">(${g.type==='video'?'Video':(g.cat||'—')})</span></div></div>
+  <div class="adrow" style="${g.approved===false?'border-left:4px solid var(--gold); border-radius:4px;':''}"><div class="ar-info"><div class="ar-ico" style="border-radius:6px">${g.type==='video'?`<video src="${g.url}" muted preload="metadata" style="width:100%;height:100%;object-fit:cover;"></video>`:`<img src="${g.url}" style="border-radius:6px"/>`}</div>
+    <div class="ar-nm">${g.caption} ${g.approved===false?'<span style="color:var(--gold)">(Pending)</span>':''} <span style="opacity:0.6">(${g.type==='video'?'Video':(g.cat||'—')})</span></div></div>
     <div class="ar-actions">
+      ${g.approved===false?`<button class="ar-btn ok" onclick="approveGal(${g.id})" title="Approve">✅</button>`:''}
       <button class="ar-btn" onclick="moveGalUp(${g.id})" title="Move Up" ${i===0?'style="opacity:0.3;pointer-events:none"':''}>↑</button>
       <button class="ar-btn" onclick="moveGalDown(${g.id})" title="Move Down" ${i===D.gallery.length-1?'style="opacity:0.3;pointer-events:none"':''}>↓</button>
       <button class="ar-btn" onclick="editGal(${g.id})" title="Edit">✏️</button>
@@ -575,6 +715,96 @@ function renderAMem(){
         ${!m.approved?`<button class="ar-btn ok" onclick="approveMem(${m.id})" title="Approve">✅</button>`:''}
         <button class="ar-btn del" onclick="delMem(${m.id})">🗑️</button>
       </div></div>`).join('');}
+
+// ====== STUDENT PORTAL LOGIC ======
+function renderPortal() {
+   if(!loggedInUser) return;
+   const s = D.students.find(x => x.id === loggedInUser.id) || loggedInUser;
+   
+   if(s.pendingProfile) {
+       document.getElementById('portalNotice').style.display='block';
+   } else {
+       document.getElementById('portalNotice').style.display='none';
+   }
+
+   document.getElementById('pName').value = s.name || '';
+   document.getElementById('pNick').value = s.nick || '';
+   document.getElementById('pGender').value = s.gender || 'male';
+   document.getElementById('pQuote').value = s.quote || '';
+   document.getElementById('pImg').value = s.img || '';
+   document.getElementById('pMedia').value = s.stuMedia || '';
+   document.getElementById('pIg').value = s.ig || '';
+   document.getElementById('pFb').value = s.fb || '';
+   document.getElementById('pNewCode').value = '';
+   renderPortalGal();
+}
+
+function savePortalProfile() {
+   if(!loggedInUser) return;
+   const s = D.students.find(x => x.id === loggedInUser.id);
+   if(s) {
+       s.pendingProfile = {
+           name: document.getElementById('pName').value.trim() || s.name,
+           nick: document.getElementById('pNick').value.trim() || s.name.split(' ')[0],
+           gender: document.getElementById('pGender').value,
+           quote: document.getElementById('pQuote').value.trim(),
+           img: document.getElementById('pImg').value.trim(),
+           stuMedia: document.getElementById('pMedia').value.trim(),
+           ig: document.getElementById('pIg').value.trim(),
+           fb: document.getElementById('pFb').value.trim(),
+           newCode: document.getElementById('pNewCode').value.trim() || null
+       };
+       save();
+       toast('Profile edits sent for Admin approval! ⏳','ok');
+       renderPortal();
+       renderAStu();
+   }
+}
+
+function submitPortalGal() {
+    const url = document.getElementById('fPGalUrl').value.trim();
+    const cap = document.getElementById('fPGalCap').value.trim();
+    if(!url) { toast('Image URL required','err'); return; }
+    D.gallery.push({
+        id: D.nextGalId++,
+        type: 'image',
+        url: url,
+        caption: cap || 'My Memory',
+        cat: 'Memories',
+        approved: false,
+        authorId: loggedInUser.id
+    });
+    save();
+    togForm('formPortalGal');
+    document.getElementById('fPGalUrl').value='';
+    document.getElementById('fPGalCap').value='';
+    renderPortalGal();
+    toast('Photo submitted for approval! 📸','ok');
+}
+
+function delPortalGal(id) {
+    if(!confirm('Remove this photo?')) return;
+    D.gallery = D.gallery.filter(g => g.id !== id);
+    save();
+    renderPortalGal();
+}
+
+function renderPortalGal() {
+   if(!loggedInUser) return;
+   const myPhotos = D.gallery.filter(g => g.authorId === loggedInUser.id);
+   document.getElementById('portalGalList').innerHTML = myPhotos.map(g => `
+      <div class="adrow">
+        <div class="ar-info">
+          <div class="ar-ico" style="border-radius:6px"><img src="${g.url}" style="border-radius:6px"/></div>
+          <div class="ar-nm">${g.caption} <span style="font-size:12px;color:var(--gold);">${g.approved===false?'(Pending)':'(Approved)'}</span></div>
+        </div>
+        <div class="ar-actions">
+           ${g.approved===false?`<button class="ar-btn del" onclick="delPortalGal(${g.id})">🗑️</button>`:''}
+        </div>
+      </div>
+   `).join('');
+}
+
 
 // Admin Match Config
 function loadMatchCfg(){
@@ -880,6 +1110,17 @@ document.addEventListener('keydown',e=>{
   }
 });
 
+window.addEventListener('popstate', (e) => {
+  const lb = document.getElementById('lightbox');
+  if(lb && lb.classList.contains('open')) {
+     closeLB(true); return;
+  }
+  const modal = document.getElementById('studentModal');
+  if(modal && modal.classList.contains('open')) {
+     closeModal(true); return;
+  }
+});
+
 // ====== INIT ======
 document.addEventListener('DOMContentLoaded',()=>{
   // Preloader
@@ -1033,6 +1274,19 @@ function renderAYb(){
     <div class="adrow"><div class="ar-info"><div class="ar-ico"><img src="${p.img}"/></div><div class="ar-nm">${p.title}</div></div>
     <div class="ar-actions"><button class="ar-btn ok" onclick="editYb(${p.id})">✏️</button><button class="ar-btn del" onclick="delYb(${p.id})">🗑️</button></div></div>`).join('');
 }
+
+// ====== DEVTOOLS / INSPECT PROTECTION ======
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('keydown', e => {
+  if (
+    e.key === 'F12' ||
+    (e.ctrlKey && e.shiftKey && ['I','J','C'].includes(e.key.toUpperCase())) ||
+    (e.ctrlKey && e.key.toUpperCase() === 'U')
+  ) {
+    e.preventDefault();
+    toast('Inspect is disabled for security \ud83d\udd12', 'err');
+  }
+});
 
 function applyFooterUI(){
   const c=D.loaderCfg||DEF.loaderCfg;
