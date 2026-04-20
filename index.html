@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;600&family=Caveat:wght@600&family=Outfit:wght@400;600&display=swap" rel="stylesheet"/>
-  <link rel="stylesheet" href="styles.css"/>
+  <link rel="stylesheet" href="styles (1).css"/>
 </head>
 <body style="background:#0a0a0a;">
 
@@ -175,6 +175,7 @@
 <!-- Lightbox -->
 <div id="lightbox" class="lb-bg" onclick="if(event.target===this)closeLB()">
   <button class="lb-x" onclick="closeLB()">✕</button>
+  <button class="lb-dl" id="lbDlBtn" onclick="downloadCurrentMedia()" style="position:absolute; top:20px; right:80px; width:44px; height:44px; border-radius:50%; border:none; background:rgba(0,0,0,0.6); color:#fff; font-size:22px; cursor:pointer; z-index:1100; display:flex; align-items:center; justify-content:center;" title="Download">📥</button>
   <button class="lb-nav lb-prev" onclick="lbPrev()">‹</button>
   <button class="lb-nav lb-next" onclick="lbNext()">›</button>
   <img id="lbImg" src="" alt="" style="display:none"/>
@@ -255,10 +256,10 @@
     <div class="admin-login" id="adminLogin">
       <div class="admin-login-box">
         <div class="al-icon">🔐</div>
-        <h2>Admin Panel</h2>
-        <p>Secure access only</p>
-        <input type="text" id="aUser" placeholder="Username" class="field"/>
-        <input type="password" id="aPass" placeholder="Password" class="field"/>
+        <h2>Portal Login</h2>
+        <p>Login with your secret code</p>
+        <input type="text" id="aUser" placeholder="Your Name (or admin)" class="field"/>
+        <input type="password" id="aPass" placeholder="Login Code (or password)" class="field"/>
         <button class="btn-gold" onclick="doAdminLogin()">Login</button>
         <div class="al-err" id="alErr"></div>
       </div>
@@ -273,13 +274,57 @@
         </div>
       </div>
       <div class="ad-tabs">
-        <button class="adtab active" onclick="adTab('adt-students')">Batchmates</button>
-        <button class="adtab" onclick="adTab('adt-gallery')">Gallery</button>
-        <button class="adtab" onclick="adTab('adt-memories')">Wall</button>
-        <button class="adtab" onclick="adTab('adt-match')">Match</button>
-        <button class="adtab" onclick="adTab('adt-hero')">Hero</button>
-        <button class="adtab" onclick="adTab('adt-yearbook')">Yearbook</button>
-        <button class="adtab" onclick="adTab('adt-settings')">Settings</button>
+        <button class="adtab active" data-tab="adt-students" onclick="adTab('adt-students')">Batchmates</button>
+        <button class="adtab" data-tab="adt-gallery" onclick="adTab('adt-gallery')">Gallery</button>
+        <button class="adtab" data-tab="adt-memories" onclick="adTab('adt-memories')">Wall</button>
+        <button class="adtab" data-tab="adt-match" onclick="adTab('adt-match')">Match</button>
+        <button class="adtab" data-tab="adt-hero" onclick="adTab('adt-hero')">Hero</button>
+        <button class="adtab" data-tab="adt-yearbook" onclick="adTab('adt-yearbook')">Yearbook</button>
+        <button class="adtab" data-tab="adt-settings" onclick="adTab('adt-settings')">Settings</button>
+        <button class="adtab" data-tab="adt-portal" onclick="adTab('adt-portal')" style="display:none;">My Portal</button>
+      </div>
+
+      <!-- Student Portal -->
+      <div class="adpanel" id="adt-portal">
+        <div class="adp-top"><h3>My Profile</h3></div>
+        
+        <div id="portalNotice" style="display:none; background:rgba(212, 168, 83, 0.1); border:1px solid var(--gold); padding:10px; border-radius:8px; margin-bottom:15px; color:var(--gold); font-size:14px;">
+           ⏳ You have profile edits pending approval from the Super Admins. New changes will overwrite pending ones.
+        </div>
+
+        <div class="settings-box" id="portalProfileBox">
+          <label>My Full Name (Warning: changing this changes your login username!)</label>
+          <input type="text" id="pName" class="field"/>
+          <label>My Nickname</label>
+          <input type="text" id="pNick" class="field"/>
+          <label>Gender</label>
+          <select id="pGender" class="field"><option value="male">Male</option><option value="female">Female</option></select>
+          <label>My Bio/Quote</label>
+          <input type="text" id="pQuote" class="field"/>
+          <label>Profile Picture URL</label>
+          <input type="text" id="pImg" class="field"/>
+          <label>Personal Photos / Drive Link (Optional)</label>
+          <input type="text" id="pMedia" class="field"/>
+          <label>Instagram Username</label>
+          <input type="text" id="pIg" class="field"/>
+          <label>Facebook Profile URL</label>
+          <input type="text" id="pFb" class="field"/>
+          <label style="color:var(--gold);">Request Login Code Change (Optional)</label>
+          <input type="text" id="pNewCode" class="field" placeholder="Enter new secret code..."/>
+          <button class="btn-sm-gold" style="margin-top:10px" onclick="savePortalProfile()">Submit Changes for Approval</button>
+        </div>
+        
+        <div class="adp-top" style="margin-top:30px;"><h3>My Photos for Gallery</h3><button class="btn-sm-gold" onclick="togForm('formPortalGal')">+ Select Photo</button></div>
+        <p class="ad-note">Photos submitted will be reviewed by admins before appearing in the gallery.</p>
+        <div class="add-form" id="formPortalGal" style="display:none">
+           <input type="hidden" id="fPGalId" value=""/>
+           <label>Image/Video URL</label>
+           <input type="text" id="fPGalUrl" placeholder="Image URL" class="field"/>
+           <label>Caption</label>
+           <input type="text" id="fPGalCap" placeholder="Caption" class="field"/>
+           <div class="ff-btns"><button class="btn-sm-gold" onclick="submitPortalGal()">Submit for Approval</button><button class="btn-sm-ghost" onclick="togForm('formPortalGal')">Cancel</button></div>
+        </div>
+        <div class="adlist" id="portalGalList" style="margin-top:15px;"></div>
       </div>
 
       <!-- Students -->
@@ -308,7 +353,13 @@
           <select id="fGalType" class="field"><option value="image">Image</option><option value="video">Video (MP4)</option></select>
           <input type="text" id="fGalUrl" placeholder="Media URL (Image or MP4 link)" class="field"/>
           <input type="text" id="fGalCap" placeholder="Caption (Applied to all if batch uploading)" class="field"/>
-          <select id="fGalCat" class="field"><option value="School Days">School Days</option><option value="Farewell">Farewell</option><option value="Events">Events</option><option value="Memories">Memories</option></select>
+          <input type="text" id="fGalCat" placeholder="Category/Section (e.g. Events, Trips, Classrooms)" class="field" list="existingGalCats"/>
+          <datalist id="existingGalCats">
+             <option value="School Days"></option>
+             <option value="Farewell"></option>
+             <option value="Events"></option>
+             <option value="Memories"></option>
+          </datalist>
           <div class="ff-btns"><button class="btn-sm-gold" onclick="addGal()">Save</button><button class="btn-sm-ghost" onclick="cancelGalForm()">Cancel</button></div>
         </div>
         <div class="adlist" id="adGalList"></div>
@@ -562,6 +613,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 
-<script src="app.js"></script>
+<script src="app (1).js"></script>
 </body>
 </html>
