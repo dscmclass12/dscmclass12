@@ -75,15 +75,14 @@ function loadLive() {
       D = data;
       if (typeof ensureCodes === 'function') ensureCodes();
       applyLoaderUI();
-      applyHeroUI();       // ← apply saved hero backgrounds & text
+      applyHeroUI();
       renderYearbook();
-      applyLayoutUI();     // ← was wrongly called as updateLayoutUI()
+      applyLayoutUI();
       applyAppearanceUI();
       applyFooterUI();
       if(curPage === 'hero') setupHeroScroll();
       toast('Live Sync Active ✅', 'ok');
     } else {
-      // First time - push defaults
       save();
     }
   });
@@ -120,7 +119,6 @@ applyLoaderUI();
 // ====== NAVIGATION ======
 let curPage='hero';
 let lastHomeTap = 0;
-// navigateTo is defined below (single authoritative version)
 function initParticles(){
   if(document.getElementById('particleWrap')) return;
   const w=document.createElement('div');w.id='particleWrap';w.className='particle-wrap';
@@ -128,7 +126,6 @@ function initParticles(){
   w.style.zIndex = '50';
   document.body.appendChild(w);
 
-  // Emojis
   const emojis=['✨','🎓','📸','💫','❤️','🌟','🕊️','📝','📚','🎒','🚌','✍️','🎨','⚽','🏫'];
   for(let i=0;i<30;i++){
     const p=document.createElement('div');p.className='particle';
@@ -141,7 +138,6 @@ function initParticles(){
     w.appendChild(p);
   }
 
-  // Glitter
   const glitters=['✦','⋆','✨','⁺','⭐'];
   for(let j=0;j<45;j++){
     const g=document.createElement('div');g.className='particle glit';
@@ -155,12 +151,10 @@ function initParticles(){
     w.appendChild(g);
   }
 
-  // Paper Plane
   const plane=document.createElement('div');
   plane.className='paper-plane'; plane.textContent='✈️';
   w.appendChild(plane);
 
-  // Doodles
   const doodles=['BFFs forever','xoxo','Class of 2026','Miss you all','Best days <3','12th Grade!','DSCM Souls'];
   for(let k=0;k<doodles.length;k++){
     const d=document.createElement('div');d.className='doodle-text';
@@ -185,7 +179,7 @@ function setupHeroScroll(){
     ents.forEach(e=>{
       if(e.isIntersecting){
         if(e.target.id==='heroContent1') e.target.classList.add('hc-visible');
-        else e.target.classList.add('hc-vis'); // Using hc-vis for timeline slides
+        else e.target.classList.add('hc-vis');
       }
       else{
         if(e.target.id==='heroContent1') e.target.classList.remove('hc-visible');
@@ -205,7 +199,7 @@ function renderStudents(){
   const list=D.students.filter(s=>s.visible!==false&&(s.name.toLowerCase().includes(q)||s.nick.toLowerCase().includes(q)));
   document.getElementById('studentsGrid').innerHTML=list.map((s,i)=>`
     <div class="stu-card" style="animation-delay:${i*.04}s" onclick="openStu(${s.id})">
-      <div class="stu-ava">${s.img?`<img src="${s.img}" alt="${s.name}" loading="lazy"/>`  :em(s.gender)}</div>
+      <div class="stu-ava">${s.img?`<img src="${s.img}" alt="${s.name}" loading="lazy"/>`:em(s.gender)}</div>
       <div class="stu-name">${s.name}</div>
       <div class="stu-nick">${s.nick}</div>
     </div>`).join('');
@@ -216,7 +210,7 @@ function openStu(id){
   const s=D.students.find(x=>x.id===id);if(!s)return;
   document.getElementById('modalBody').innerHTML=`
     <div class="mp-center">
-      <div class="mp-ava">${s.img?`<img src="${s.img}"/>`  :em(s.gender)}</div>
+      <div class="mp-ava">${s.img?`<img src="${s.img}"/>`:em(s.gender)}</div>
       <div class="mp-name">${s.name}</div>
       <div class="mp-nick">"${s.nick}"</div>
       ${s.quote?`<div class="mp-quote">"${s.quote}"</div>`:''}
@@ -315,7 +309,6 @@ async function downloadCurrentMedia() {
         a.remove();
         window.URL.revokeObjectURL(url);
     } catch(e) {
-        // Fallback for CORS issues
         const a = document.createElement('a');
         a.href = g.url;
         a.target = '_blank';
@@ -382,7 +375,6 @@ function findMatch(){
   let pool=D.students.filter(s=>s.gender===opp&&s.visible!==false&&!(cfg.excludeIds||[]).includes(s.id));
   if(!pool.length){toast('No matches available!','err');return;}
 
-  // Show loading
   document.getElementById('matchForm').style.display='none';
   document.getElementById('matchAnim').style.display='block';
 
@@ -396,7 +388,6 @@ function findMatch(){
     if(cfg.mode==='fixed'&&cfg.fixedId){
       match=D.students.find(s=>s.id===cfg.fixedId);
     }else if(cfg.mode==='biased'&&cfg.biasId){
-      // weighted random
       const weighted=[];
       pool.forEach(s=>{
         const w=s.id===cfg.biasId?(cfg.biasWeight||5):1;
@@ -414,7 +405,6 @@ function findMatch(){
     document.getElementById('matchAnim').style.display='none';
     document.getElementById('matchRes').style.display='block';
     
-    // Change final shuffle box to matched user photo
     c2.innerHTML=getF(match);
     
     const resAva = s => s.img ? `<img src="${s.img}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;margin-right:8px;border:1px solid var(--border);vertical-align:middle;"/>` : `<span class="rpe">${em(s.gender)}</span>`;
@@ -502,7 +492,7 @@ function showAdminDash() {
     
     document.querySelectorAll('.adtab').forEach(t => {
        const tabId = t.getAttribute('data-tab');
-       if(!tabId) return; // for previous tabs without data-tab
+       if(!tabId) return;
        let show = true;
        if (adminRole === 'limited') {
            if (tabId !== 'adt-gallery' && tabId !== 'adt-portal') show = false;
@@ -546,7 +536,7 @@ function adTab(id){
   const target = document.getElementById(id);
   if(target) target.classList.add('active');
 }
-function showTab(id){ adTab(id); } // Alias for safety
+function showTab(id){ adTab(id); }
 function togForm(id){const f=document.getElementById(id);f.style.display=f.style.display==='none'?'block':'none';}
 
 // Admin Students
@@ -629,7 +619,7 @@ function reviewEdits(id) {
 
 function renderAStu(){document.getElementById('adStuList').innerHTML=D.students.map((s, i)=>`
   <div class="adrow" style="opacity:${s.visible===false?'.5':'1'}; ${s.pendingProfile?'border-left: 4px solid var(--gold); border-radius: 4px;':''}">
-    <div class="ar-info"><div class="ar-ico">${s.img?`<img src="${s.img}"/>`  :em(s.gender)}</div><div class="ar-nm">${s.name} (${s.nick}) ${s.pendingProfile?'<span style="color:var(--gold);font-size:12px;margin-left:6px;">[Edits Pending]</span>':''}</div></div>
+    <div class="ar-info"><div class="ar-ico">${s.img?`<img src="${s.img}"/>`:em(s.gender)}</div><div class="ar-nm">${s.name} (${s.nick}) ${s.pendingProfile?'<span style="color:var(--gold);font-size:12px;margin-left:6px;">[Edits Pending]</span>':''}</div></div>
     <div class="ar-actions">
       ${s.pendingProfile?`<button class="ar-btn ok" onclick="reviewEdits(${s.id})" title="Review Edits">🔔</button>`:''}
       ${adminRole==='full'?`<span style="font-size:12px; color:var(--txt3); margin-right:10px;">Code: <strong style="color:var(--gold)">${s.code||'—'}</strong></span>`:''}
@@ -1039,7 +1029,6 @@ function navigateTo(id){
   }
   if(curPage===target && target !== 'admin') return;
   
-  // Transitions
   document.querySelectorAll('.page').forEach(p=>{
     p.classList.remove('active');
     p.style.opacity='';
@@ -1130,16 +1119,12 @@ document.addEventListener('DOMContentLoaded',()=>{
       animNums();
       initParticles();
       setupHeroScroll();
-      // Make hero content 1 visible
       document.getElementById('heroContent1').classList.add('hc-visible');
       
-      // Layout
       applyLayoutUI();
-      // Appearance
       applyAppearanceUI();
       renderYearbook();
       renderAYb();
-      // Force Credit Footer
       applyFooterUI();
     },300);
   },1800);
@@ -1151,8 +1136,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   hb.addEventListener('touchmove',()=>clearTimeout(lt));
   hb.addEventListener('dblclick',()=>navigateTo('admin'));
 });
+
 // ====== YEARBOOK LOGIC ======
-let currentYbPage = -1; // -1 is cover
+let currentYbPage = -1;
 function renderYearbook(){
   const container = document.getElementById('ybPages');
   if(!container) return;
@@ -1244,7 +1230,6 @@ function updateYbPage(id, field, val){
   renderYearbook();
 }
 
-// ====== YEARBOOK ADMIN ======
 function addYb(){
   const t=document.getElementById('fYbTitle').value.trim(),txt=document.getElementById('fYbText').value.trim(),img=document.getElementById('fYbImg').value.trim(),eid=document.getElementById('fYbId').value;
   if(!t||!img){toast('Title/Image required','err');return;}
@@ -1284,7 +1269,7 @@ document.addEventListener('keydown', e => {
     (e.ctrlKey && e.key.toUpperCase() === 'U')
   ) {
     e.preventDefault();
-    toast('Inspect is disabled for security \ud83d\udd12', 'err');
+    toast('Inspect is disabled for security 🔒', 'err');
   }
 });
 
@@ -1295,7 +1280,6 @@ function applyFooterUI(){
   const copy = c.copyright||'CLASS 12 ( 2025-26 )';
   const tag  = c.tagline||'All memories are preserved forever ❤️';
 
-  // 1️⃣ Update dynamically-created footers on non-hero/non-admin pages
   document.querySelectorAll('.site-footer').forEach(f=>f.remove());
   document.querySelectorAll('.page').forEach(pg=>{
     if(pg.id!=='admin' && pg.id!=='hero'){
@@ -1316,7 +1300,6 @@ function applyFooterUI(){
     }
   });
 
-  // 2️⃣ Update the hero section's static footer (inside hs-3)
   const heroCreator = document.getElementById('fCreatorHero');
   if(heroCreator){ heroCreator.textContent='Made by '+name; heroCreator.href=link; }
   const heroCopy = document.getElementById('fCopyHero');
