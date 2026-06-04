@@ -46,6 +46,8 @@ const DEF = {
     heroCta:'Explore Our Memories →', introTitle:'Memories', introSub:'A collection of moments that defined us.',
     ybTitle:'CLASS 12 BATCH', ybSub:'(2025-26)', ybHint:'Click to flip the story 📖',
     archiveLink:'',
+    igLink:'https://www.instagram.com/dscm_12_squad_/',
+    fbLink:'https://www.facebook.com/profile.php?id=61587983219896',
     visStu:true, visGal:true, visWall:true, visMatch:true, visYb:true
   },
   adminPassword:"a%$5044444$$",
@@ -60,12 +62,19 @@ let D = JSON.parse(JSON.stringify(DEF));
 
 // ====== FIREBASE SYNC ======
 function save(){
-  db.ref('siteData').set(D).then(()=>{
-    toast('Live database updated! 🌏','ok');
-  }).catch(e=>{
-    toast('Sync Error','err');
+  try {
+    db.ref('siteData').set(D).then(()=>{
+      toast('Live database updated! 🌏','ok');
+    }).catch(e=>{
+      toast('Sync Error','err');
+      console.error("Firebase sync error:", e);
+      localStorage.setItem('dscm_backup', JSON.stringify(D));
+    });
+  } catch(e) {
+    toast('Local Save active (Sync Error)','err');
+    console.error("Firebase sync crashed:", e);
     localStorage.setItem('dscm_backup', JSON.stringify(D));
-  });
+  }
 }
 
 function loadLive() {
@@ -73,6 +82,7 @@ function loadLive() {
     const data = snap.val();
     if(data) {
       D = data;
+      if (typeof ensureIds === 'function') ensureIds();
       if (typeof ensureCodes === 'function') ensureCodes();
       applyLoaderUI();
       applyHeroUI();
@@ -198,7 +208,7 @@ function renderStudents(){
   const q=(document.getElementById('studentSearch')?.value||'').toLowerCase();
   const list=D.students.filter(s=>s.visible!==false&&(s.name.toLowerCase().includes(q)||s.nick.toLowerCase().includes(q)));
   document.getElementById('studentsGrid').innerHTML=list.map((s,i)=>`
-    <div class="stu-card" style="animation-delay:${i*.04}s" onclick="openStu(${s.id})">
+    <div class="stu-card" style="animation-delay:${i*.04}s" onclick="openStu('${s.id}')">
       <div class="stu-ava">${s.img?`<img src="${s.img}" alt="${s.name}" loading="lazy"/>`:em(s.gender)}</div>
       <div class="stu-name">${s.name}</div>
       <div class="stu-nick">${s.nick}</div>
@@ -207,7 +217,7 @@ function renderStudents(){
 function filterStudents(){renderStudents();}
 
 function openStu(id){
-  const s=D.students.find(x=>x.id===id);if(!s)return;
+  const s=D.students.find(x=>x && x.id==id);if(!s)return;
   document.getElementById('modalBody').innerHTML=`
     <div class="mp-center">
       <div class="mp-ava">${s.img?`<img src="${s.img}"/>`:em(s.gender)}</div>
@@ -335,7 +345,7 @@ function renderMemories(){
       <div class="mc-body">"${esc(m.text)}"</div>
       <div class="mc-head">
         <div class="mc-name">${esc(m.author)}</div>
-        <button class="mc-like ${m.likedBy?.includes('u')?'liked':''}" onclick="togLike(${m.id})">
+        <button class="mc-like ${m.likedBy?.includes('u')?'liked':''}" onclick="togLike('${m.id}')">
           <span class="lh">${m.likedBy?.includes('u')?'❤️':'🤍'}</span><span>${m.likes}</span>
         </button>
       </div>
@@ -351,7 +361,7 @@ function submitMemory(){
 }
 
 function togLike(id){
-  const m=D.memories.find(x=>x.id===id);if(!m)return;if(!m.likedBy)m.likedBy=[];
+  const m=D.memories.find(x=>x && x.id==id);if(!m)return;if(!m.likedBy)m.likedBy=[];
   const i=m.likedBy.indexOf('u');
   if(i>-1){m.likedBy.splice(i,1);m.likes=Math.max(0,m.likes-1);}else{m.likedBy.push('u');m.likes++;}
   save();renderMemories();
@@ -456,6 +466,67 @@ function ensureCodes() {
       }
    });
    if(updated) save();
+}
+
+function forceArray(val) {
+  if (!val) return [];
+  if (Array.isArray(val)) {
+    return val.filter(item => item !== null && item !== undefined);
+  }
+  if (typeof val === 'object') {
+    const arr = [];
+    Object.keys(val).forEach(k => {
+      if (val[k] !== null && val[k] !== undefined) {
+        arr.push(val[k]);
+      }
+    });
+    return arr;
+  }
+  return [];
+}
+
+function ensureIds() {
+  let updated = false;
+
+  const oldStuLen = (D.students && Array.isArray(D.students)) ? D.students.length : -1;
+  D.students = forceArray(D.students);
+  if (D.students.length !== oldStuLen) updated = true;
+
+  const oldGalLen = (D.gallery && Array.isArray(D.gallery)) ? D.gallery.length : -1;
+  D.gallery = forceArray(D.gallery);
+  if (D.gallery.length !== oldGalLen) updated = true;
+
+  const oldMemLen = (D.memories && Array.isArray(D.memories)) ? D.memories.length : -1;
+  D.memories = forceArray(D.memories);
+  if (D.memories.length !== oldMemLen) updated = true;
+
+  const oldHeroLen = (D.heroSlides && Array.isArray(D.heroSlides)) ? D.heroSlides.length : -1;
+  D.heroSlides = forceArray(D.heroSlides);
+  if (D.heroSlides.length !== oldHeroLen) updated = true;
+
+  const oldYbLen = (D.yearbook && Array.isArray(D.yearbook)) ? D.yearbook.length : -1;
+  D.yearbook = forceArray(D.yearbook);
+  if (D.yearbook.length !== oldYbLen) updated = true;
+
+  const maxStu = D.students.reduce((max, s) => Math.max(max, s && s.id ? s.id : 0), 0);
+  const nextStu = typeof D.nextStuId === 'number' && !isNaN(D.nextStuId) ? Math.max(D.nextStuId, maxStu + 1) : maxStu + 1;
+  if (D.nextStuId !== nextStu) { D.nextStuId = nextStu; updated = true; }
+
+  const maxGal = D.gallery.reduce((max, g) => Math.max(max, g && g.id ? g.id : 0), 0);
+  const nextGal = typeof D.nextGalId === 'number' && !isNaN(D.nextGalId) ? Math.max(D.nextGalId, maxGal + 1) : maxGal + 1;
+  if (D.nextGalId !== nextGal) { D.nextGalId = nextGal; updated = true; }
+
+  const maxMem = D.memories.reduce((max, m) => Math.max(max, m && m.id ? m.id : 0), 0);
+  const nextMem = typeof D.nextMemId === 'number' && !isNaN(D.nextMemId) ? Math.max(D.nextMemId, maxMem + 1) : maxMem + 1;
+  if (D.nextMemId !== nextMem) { D.nextMemId = nextMem; updated = true; }
+
+  const maxHero = D.heroSlides.reduce((max, s) => Math.max(max, s && s.id ? s.id : 0), 0);
+  const nextHero = typeof D.nextHeroSlideId === 'number' && !isNaN(D.nextHeroSlideId) ? Math.max(D.nextHeroSlideId, maxHero + 1) : maxHero + 1;
+  if (D.nextHeroSlideId !== nextHero) { D.nextHeroSlideId = nextHero; updated = true; }
+
+  if (updated) {
+    save();
+  }
 }
 
 function doAdminLogin(){
@@ -568,6 +639,10 @@ function addStu(){
   media=document.getElementById('fStuMedia').value.trim(), ig=document.getElementById('fStuIg').value.trim(),fb=document.getElementById('fStuFb').value.trim();
   if(!n||!g){toast('Name & gender required','err');return;}
   
+  if(!D.students || !Array.isArray(D.students)) { D.students = []; }
+  const maxStu = D.students.reduce((max, s) => Math.max(max, s && s.id ? s.id : 0), 0);
+  D.nextStuId = typeof D.nextStuId === 'number' && !isNaN(D.nextStuId) ? Math.max(D.nextStuId, maxStu + 1) : maxStu + 1;
+
   if (editId) {
     const s = D.students.find(x=>x.id==editId);
     if(s) {
@@ -581,7 +656,7 @@ function addStu(){
   save(); cancelStuForm(); renderAStu();
 }
 function moveStuUp(id){
-  const idx = D.students.findIndex(s=>s.id==id);
+  const idx = D.students.findIndex(s=>s && s.id==id);
   if(idx > 0) {
     const temp = D.students[idx];
     D.students[idx] = D.students[idx-1];
@@ -590,7 +665,7 @@ function moveStuUp(id){
   }
 }
 function moveStuDown(id){
-  const idx = D.students.findIndex(s=>s.id==id);
+  const idx = D.students.findIndex(s=>s && s.id==id);
   if(idx > -1 && idx < D.students.length - 1) {
     const temp = D.students[idx];
     D.students[idx] = D.students[idx+1];
@@ -598,10 +673,10 @@ function moveStuDown(id){
     save(); renderAStu(); renderStudents();
   }
 }
-function delStu(id){if(!confirm('Remove?'))return;D.students=D.students.filter(s=>s.id!=id);save();renderAStu();toast('Removed','ok');}
-function togVisStu(id){const s=D.students.find(x=>x.id==id);if(s){s.visible=!s.visible;save();renderAStu();toast(s.visible?'Shown':'Hidden','ok');}}
+function delStu(id){if(!confirm('Remove?'))return;D.students=D.students.filter(s=>s && s.id!=id);save();renderAStu();toast('Removed','ok');}
+function togVisStu(id){const s=D.students.find(x=>x && x.id==id);if(s){s.visible=!s.visible;save();renderAStu();toast(s.visible?'Shown':'Hidden','ok');}}
 function reviewEdits(id) {
-    const s = D.students.find(x=>x.id==id);
+    const s = D.students.find(x=>x && x.id==id);
     if(!s || !s.pendingProfile) return;
     const p = s.pendingProfile;
     const msg = `Approve changes for ${s.name}?\n\nName: ${p.name}\nNick: ${p.nick}\nGender: ${p.gender}\nQuote: ${p.quote}\n` +
@@ -621,19 +696,19 @@ function renderAStu(){document.getElementById('adStuList').innerHTML=D.students.
   <div class="adrow" style="opacity:${s.visible===false?'.5':'1'}; ${s.pendingProfile?'border-left: 4px solid var(--gold); border-radius: 4px;':''}">
     <div class="ar-info"><div class="ar-ico">${s.img?`<img src="${s.img}"/>`:em(s.gender)}</div><div class="ar-nm">${s.name} (${s.nick}) ${s.pendingProfile?'<span style="color:var(--gold);font-size:12px;margin-left:6px;">[Edits Pending]</span>':''}</div></div>
     <div class="ar-actions">
-      ${s.pendingProfile?`<button class="ar-btn ok" onclick="reviewEdits(${s.id})" title="Review Edits">🔔</button>`:''}
+      ${s.pendingProfile?`<button class="ar-btn ok" onclick="reviewEdits('${s.id}')" title="Review Edits">🔔</button>`:''}
       ${adminRole==='full'?`<span style="font-size:12px; color:var(--txt3); margin-right:10px;">Code: <strong style="color:var(--gold)">${s.code||'—'}</strong></span>`:''}
-      <button class="ar-btn" onclick="moveStuUp(${s.id})" title="Move Up" ${i===0?'style="opacity:0.3;pointer-events:none"':''}>↑</button>
-      <button class="ar-btn" onclick="moveStuDown(${s.id})" title="Move Down" ${i===D.students.length-1?'style="opacity:0.3;pointer-events:none"':''}>↓</button>
-      <button class="ar-btn" onclick="editStu(${s.id})" title="Edit">✏️</button>
-      <button class="ar-btn" onclick="togVisStu(${s.id})" title="${s.visible===false?'Show':'Hide'}">${s.visible===false?'👁️':'👁️‍🗨️'}</button>
-      <button class="ar-btn del" onclick="delStu(${s.id})" title="Delete">🗑️</button>
+      <button class="ar-btn" onclick="moveStuUp('${s.id}')" title="Move Up" ${i===0?'style="opacity:0.3;pointer-events:none"':''}>↑</button>
+      <button class="ar-btn" onclick="moveStuDown('${s.id}')" title="Move Down" ${i===D.students.length-1?'style="opacity:0.3;pointer-events:none"':''}>↓</button>
+      <button class="ar-btn" onclick="editStu('${s.id}')" title="Edit">✏️</button>
+      <button class="ar-btn" onclick="togVisStu('${s.id}')" title="${s.visible===false?'Show':'Hide'}">${s.visible===false?'👁️':'👁️‍🗨️'}</button>
+      <button class="ar-btn del" onclick="delStu('${s.id}')" title="Delete">🗑️</button>
     </div>
   </div>`).join('');}
 
 // Admin Gallery
 function editGal(id) {
-  const g=D.gallery.find(x=>x.id===id);if(!g)return;
+  const g=D.gallery.find(x=>x && x.id==id);if(!g)return;
   document.getElementById('fGalId').value=g.id;
   document.getElementById('fGalType').value=g.type||'image';
   document.getElementById('fGalUrl').value=g.url;
@@ -651,16 +726,45 @@ function addGal(){
   const editId=document.getElementById('fGalId').value;
   const u=document.getElementById('fGalUrl').value.trim(),c=document.getElementById('fGalCap').value.trim(),cat=document.getElementById('fGalCat').value,type=document.getElementById('fGalType').value;
   if(!u){toast('URL required','err');return;}
+  
+  if(!D.gallery || !Array.isArray(D.gallery)) { D.gallery = []; }
+  const maxGal = D.gallery.reduce((max, g) => Math.max(max, g && g.id ? g.id : 0), 0);
+  D.nextGalId = typeof D.nextGalId === 'number' && !isNaN(D.nextGalId) ? Math.max(D.nextGalId, maxGal + 1) : maxGal + 1;
+
   if(editId){
     const g=D.gallery.find(x=>x.id==editId);
     if(g){g.url=u;g.caption=c||'Media';g.cat=cat;g.type=type;toast('Gallery updated! ✏️','ok');}
   }else{
-    D.gallery.push({id:D.nextGalId++,type,url:u,caption:c||'Media',cat});toast('Media added! 📸','ok');
+    let urls = [u];
+    if (u.includes('\n')) {
+      urls = u.split('\n').map(x => x.trim()).filter(x => x.length > 0);
+    } else if (u.includes(',')) {
+      const parts = u.split(',').map(x => x.trim()).filter(x => x.length > 0);
+      if (parts.length > 1 && parts.every(p => p.startsWith('http') || p.startsWith('/') || p.includes('.'))) {
+        urls = parts;
+      }
+    }
+    
+    if (urls.length > 1) {
+      urls.forEach(url => {
+        D.gallery.push({
+          id: D.nextGalId++,
+          type,
+          url,
+          caption: c || 'Media',
+          cat
+        });
+      });
+      toast(`${urls.length} media items added! 📸`, 'ok');
+    } else {
+      D.gallery.push({id:D.nextGalId++,type,url:u,caption:c||'Media',cat});
+      toast('Media added! 📸','ok');
+    }
   }
   save();cancelGalForm();renderAGal();
 }
 function moveGalUp(id){
-  const idx = D.gallery.findIndex(g=>g.id==id);
+  const idx = D.gallery.findIndex(g=>g && g.id==id);
   if(idx > 0) {
     const temp = D.gallery[idx];
     D.gallery[idx] = D.gallery[idx-1];
@@ -669,7 +773,7 @@ function moveGalUp(id){
   }
 }
 function moveGalDown(id){
-  const idx = D.gallery.findIndex(g=>g.id==id);
+  const idx = D.gallery.findIndex(g=>g && g.id==id);
   if(idx > -1 && idx < D.gallery.length - 1) {
     const temp = D.gallery[idx];
     D.gallery[idx] = D.gallery[idx+1];
@@ -677,33 +781,33 @@ function moveGalDown(id){
     save(); renderAGal(); renderGallery();
   }
 }
-function delGal(id){if(!confirm('Remove?'))return;D.gallery=D.gallery.filter(g=>g.id!=id);save();renderAGal();toast('Removed','ok');}
+function delGal(id){if(!confirm('Remove?'))return;D.gallery=D.gallery.filter(g=>g && g.id!=id);save();renderAGal();toast('Removed','ok');}
 function approveGal(id){
-    const g=D.gallery.find(x=>x.id==id);
+    const g=D.gallery.find(x=>x && x.id==id);
     if(g) { g.approved=true; save(); renderAGal(); renderGallery(); toast('Approved','ok'); }
 }
 function renderAGal(){document.getElementById('adGalList').innerHTML=D.gallery.map((g,i)=>`
   <div class="adrow" style="${g.approved===false?'border-left:4px solid var(--gold); border-radius:4px;':''}"><div class="ar-info"><div class="ar-ico" style="border-radius:6px">${g.type==='video'?`<video src="${g.url}" muted preload="metadata" style="width:100%;height:100%;object-fit:cover;"></video>`:`<img src="${g.url}" style="border-radius:6px"/>`}</div>
     <div class="ar-nm">${g.caption} ${g.approved===false?'<span style="color:var(--gold)">(Pending)</span>':''} <span style="opacity:0.6">(${g.type==='video'?'Video':(g.cat||'—')})</span></div></div>
     <div class="ar-actions">
-      ${g.approved===false?`<button class="ar-btn ok" onclick="approveGal(${g.id})" title="Approve">✅</button>`:''}
-      <button class="ar-btn" onclick="moveGalUp(${g.id})" title="Move Up" ${i===0?'style="opacity:0.3;pointer-events:none"':''}>↑</button>
-      <button class="ar-btn" onclick="moveGalDown(${g.id})" title="Move Down" ${i===D.gallery.length-1?'style="opacity:0.3;pointer-events:none"':''}>↓</button>
-      <button class="ar-btn" onclick="editGal(${g.id})" title="Edit">✏️</button>
-      <button class="ar-btn del" onclick="delGal(${g.id})">🗑️</button>
+      ${g.approved===false?`<button class="ar-btn ok" onclick="approveGal('${g.id}')" title="Approve">✅</button>`:''}
+      <button class="ar-btn" onclick="moveGalUp('${g.id}')" title="Move Up" ${i===0?'style="opacity:0.3;pointer-events:none"':''}>↑</button>
+      <button class="ar-btn" onclick="moveGalDown('${g.id}')" title="Move Down" ${i===D.gallery.length-1?'style="opacity:0.3;pointer-events:none"':''}>↓</button>
+      <button class="ar-btn" onclick="editGal('${g.id}')" title="Edit">✏️</button>
+      <button class="ar-btn del" onclick="delGal('${g.id}')">🗑️</button>
     </div></div>`).join('');}
 
 // Admin Memories (with approval)
-function approveMem(id){const m=D.memories.find(x=>x.id===id);if(m){m.approved=true;save();renderAMem();toast('Approved ✅','ok');}}
-function delMem(id){if(!confirm('Remove?'))return;D.memories=D.memories.filter(m=>m.id!==id);save();renderAMem();toast('Removed','ok');}
+function approveMem(id){const m=D.memories.find(x=>x && x.id==id);if(m){m.approved=true;save();renderAMem();toast('Approved ✅','ok');}}
+function delMem(id){if(!confirm('Remove?'))return;D.memories=D.memories.filter(m=>m && m.id!=id);save();renderAMem();toast('Removed','ok');}
 function renderAMem(){
   const sorted=[...D.memories].sort((a,b)=>{if(a.approved===b.approved)return b.time-a.time;return a.approved?1:-1;});
   document.getElementById('adMemList').innerHTML=sorted.map(m=>`
     <div class="adrow"><div class="ar-info"><div class="ar-ico">${ini(m.author)}</div>
       <div class="ar-nm">${m.approved?'':'⏳ '}${m.author}: ${m.text.substring(0,40)}…</div></div>
       <div class="ar-actions">
-        ${!m.approved?`<button class="ar-btn ok" onclick="approveMem(${m.id})" title="Approve">✅</button>`:''}
-        <button class="ar-btn del" onclick="delMem(${m.id})">🗑️</button>
+        ${!m.approved?`<button class="ar-btn ok" onclick="approveMem('${m.id}')" title="Approve">✅</button>`:''}
+        <button class="ar-btn del" onclick="delMem('${m.id}')">🗑️</button>
       </div></div>`).join('');}
 
 // ====== STUDENT PORTAL LOGIC ======
@@ -755,6 +859,11 @@ function submitPortalGal() {
     const url = document.getElementById('fPGalUrl').value.trim();
     const cap = document.getElementById('fPGalCap').value.trim();
     if(!url) { toast('Image URL required','err'); return; }
+    
+    if(!D.gallery || !Array.isArray(D.gallery)) { D.gallery = []; }
+    const maxGal = D.gallery.reduce((max, g) => Math.max(max, g && g.id ? g.id : 0), 0);
+    D.nextGalId = typeof D.nextGalId === 'number' && !isNaN(D.nextGalId) ? Math.max(D.nextGalId, maxGal + 1) : maxGal + 1;
+
     D.gallery.push({
         id: D.nextGalId++,
         type: 'image',
@@ -774,14 +883,14 @@ function submitPortalGal() {
 
 function delPortalGal(id) {
     if(!confirm('Remove this photo?')) return;
-    D.gallery = D.gallery.filter(g => g.id !== id);
+    D.gallery = D.gallery.filter(g => g && g.id != id);
     save();
     renderPortalGal();
 }
 
 function renderPortalGal() {
    if(!loggedInUser) return;
-   const myPhotos = D.gallery.filter(g => g.authorId === loggedInUser.id);
+   const myPhotos = D.gallery.filter(g => g && g.authorId == loggedInUser.id);
    document.getElementById('portalGalList').innerHTML = myPhotos.map(g => `
       <div class="adrow">
         <div class="ar-info">
@@ -789,7 +898,7 @@ function renderPortalGal() {
           <div class="ar-nm">${g.caption} <span style="font-size:12px;color:var(--gold);">${g.approved===false?'(Pending)':'(Approved)'}</span></div>
         </div>
         <div class="ar-actions">
-           ${g.approved===false?`<button class="ar-btn del" onclick="delPortalGal(${g.id})">🗑️</button>`:''}
+           ${g.approved===false?`<button class="ar-btn del" onclick="delPortalGal('${g.id}')">🗑️</button>`:''}
         </div>
       </div>
    `).join('');
@@ -856,6 +965,11 @@ function addHeroSlide(){
   const img=document.getElementById('fHeroSlideImg').value.trim(),txt=document.getElementById('fHeroSlideText').value.trim(),sub=document.getElementById('fHeroSlideSub').value.trim();
   const eid=document.getElementById('fHeroSlideId').value;
   if(!img){toast('Image URL required','err');return;}
+  
+  if(!D.heroSlides || !Array.isArray(D.heroSlides)) { D.heroSlides = []; }
+  const maxHero = D.heroSlides.reduce((max, s) => Math.max(max, s && s.id ? s.id : 0), 0);
+  D.nextHeroSlideId = typeof D.nextHeroSlideId === 'number' && !isNaN(D.nextHeroSlideId) ? Math.max(D.nextHeroSlideId, maxHero + 1) : maxHero + 1;
+
   if(eid){
     const s=D.heroSlides.find(x=>x.id==eid);
     if(s){s.img=img;s.text=txt;s.sub=sub;}
@@ -869,7 +983,7 @@ function addHeroSlide(){
   togForm('formAddHeroSlide');renderAHeroSlides();applyHeroUI();setupHeroScroll();toast('Success!','ok');
 }
 function editHeroSlide(id){
-  const s=D.heroSlides.find(x=>x.id==id); if(!s)return;
+  const s=D.heroSlides.find(x=>x && x.id==id); if(!s)return;
   document.getElementById('fHeroSlideId').value=s.id;
   document.getElementById('fHeroSlideImg').value=s.img;
   document.getElementById('fHeroSlideText').value=s.text||'';
@@ -877,14 +991,14 @@ function editHeroSlide(id){
   document.getElementById('btnSaveHeroSlide').textContent='Update Slide';
   const f=document.getElementById('formAddHeroSlide'); if(f.style.display==='none')togForm('formAddHeroSlide');
 }
-function delHeroSlide(id){if(!confirm('Remove?'))return;D.heroSlides=D.heroSlides.filter(s=>s.id!==id);save();renderAHeroSlides();applyHeroUI();setupHeroScroll();toast('Removed','ok');}
+function delHeroSlide(id){if(!confirm('Remove?'))return;D.heroSlides=D.heroSlides.filter(s=>s && s.id!=id);save();renderAHeroSlides();applyHeroUI();setupHeroScroll();toast('Removed','ok');}
 function renderAHeroSlides(){
   document.getElementById('adHeroSlideList').innerHTML=D.heroSlides.map(s=>`
     <div class="adrow"><div class="ar-info"><div class="ar-ico" style="border-radius:6px"><img src="${s.img}" style="border-radius:6px"/></div>
     <div class="ar-nm">${s.text||'Slide'}</div></div>
     <div class="ar-actions">
-      <button class="ar-btn ok" onclick="editHeroSlide(${s.id})">✏️</button>
-      <button class="ar-btn del" onclick="delHeroSlide(${s.id})">🗑️</button>
+      <button class="ar-btn ok" onclick="editHeroSlide('${s.id}')">✏️</button>
+      <button class="ar-btn del" onclick="delHeroSlide('${s.id}')">🗑️</button>
     </div></div>`).join('');
 }
 
@@ -961,6 +1075,9 @@ function loadSettingsCfg(){
   
   if(document.getElementById('cfgMapSub')) document.getElementById('cfgMapSub').value=c.mapSub||'Revisit the hallways where it all happened.';
 
+  if(document.getElementById('cfgIgLink')) document.getElementById('cfgIgLink').value=c.igLink||'https://www.instagram.com/dscm_12_squad_/';
+  if(document.getElementById('cfgFbLink')) document.getElementById('cfgFbLink').value=c.fbLink||'https://www.facebook.com/profile.php?id=61587983219896';
+
   if(document.getElementById('cfgVisStu')) document.getElementById('cfgVisStu').checked=!!c.visStu;
   if(document.getElementById('cfgVisGal')) document.getElementById('cfgVisGal').checked=!!c.visGal;
   if(document.getElementById('cfgVisWall')) document.getElementById('cfgVisWall').checked=!!c.visWall;
@@ -989,6 +1106,9 @@ function saveSettingsCfg(){
     mapImg:document.getElementById('cfgMapImg')?document.getElementById('cfgMapImg').value:'',
     mapTitle:document.getElementById('cfgMapTitle')?document.getElementById('cfgMapTitle').value:'',
     mapSub:document.getElementById('cfgMapSub')?document.getElementById('cfgMapSub').value:'',
+    
+    igLink:document.getElementById('cfgIgLink')?document.getElementById('cfgIgLink').value:'',
+    fbLink:document.getElementById('cfgFbLink')?document.getElementById('cfgFbLink').value:'',
     
     visStu:document.getElementById('cfgVisStu')?document.getElementById('cfgVisStu').checked:true,
     visGal:document.getElementById('cfgVisGal')?document.getElementById('cfgVisGal').checked:true,
@@ -1215,7 +1335,7 @@ function addYbPage(){
 
 function deleteYbPage(id){
   const yb = D.yearbook || DEF.yearbook;
-  D.yearbook = yb.filter(p => p.id !== id);
+  D.yearbook = yb.filter(p => p && p.id != id);
   save();
   renderYearbook();
   renderAYb();
@@ -1223,7 +1343,7 @@ function deleteYbPage(id){
 
 function updateYbPage(id, field, val){
   const yb = D.yearbook || DEF.yearbook;
-  const p = yb.find(item => item.id === id);
+  const p = yb.find(item => item && item.id == id);
   if(p) p[field] = val;
   D.yearbook = yb;
   save();
@@ -1234,7 +1354,7 @@ function addYb(){
   const t=document.getElementById('fYbTitle').value.trim(),txt=document.getElementById('fYbText').value.trim(),img=document.getElementById('fYbImg').value.trim(),eid=document.getElementById('fYbId').value;
   if(!t||!img){toast('Title/Image required','err');return;}
   if(eid){
-    const p=D.yearbook.find(x=>x.id==eid);
+    const p=D.yearbook.find(x=>x && x.id==eid);
     if(p){p.title=t;p.text=txt;p.img=img;}
   }else{
     D.yearbook.push({id:Date.now(),title:t,text:txt,img:img});
@@ -1244,7 +1364,7 @@ function addYb(){
   document.getElementById('btnSaveYb').textContent='Save';toast('Yearbook updated','ok');
 }
 function editYb(id){
-  const p=D.yearbook.find(x=>x.id==id);if(!p)return;
+  const p=D.yearbook.find(x=>x && x.id==id);if(!p)return;
   document.getElementById('fYbId').value=p.id;
   document.getElementById('fYbTitle').value=p.title;
   document.getElementById('fYbText').value=p.text||'';
@@ -1252,12 +1372,12 @@ function editYb(id){
   document.getElementById('btnSaveYb').textContent='Update Page';
   const f=document.getElementById('formAddYb');if(f.style.display==='none')togForm('formAddYb');
 }
-function delYb(id){if(!confirm('Remove?'))return;D.yearbook=D.yearbook.filter(x=>x.id!==id);save();renderAYb();renderYearbook();toast('Removed','ok');}
+function delYb(id){if(!confirm('Remove?'))return;D.yearbook=D.yearbook.filter(x=>x && x.id!=id);save();renderAYb();renderYearbook();toast('Removed','ok');}
 function renderAYb(){
   const yb = D.yearbook || [];
   document.getElementById('adYbList').innerHTML=yb.map(p=>`
     <div class="adrow"><div class="ar-info"><div class="ar-ico"><img src="${p.img}"/></div><div class="ar-nm">${p.title}</div></div>
-    <div class="ar-actions"><button class="ar-btn ok" onclick="editYb(${p.id})">✏️</button><button class="ar-btn del" onclick="delYb(${p.id})">🗑️</button></div></div>`).join('');
+    <div class="ar-actions"><button class="ar-btn ok" onclick="editYb('${p.id}')">✏️</button><button class="ar-btn del" onclick="delYb('${p.id}')">🗑️</button></div></div>`).join('');
 }
 
 // ====== DEVTOOLS / INSPECT PROTECTION ======
@@ -1274,20 +1394,39 @@ document.addEventListener('keydown', e => {
 });
 
 function applyFooterUI(){
+  try {
   const c=D.loaderCfg||DEF.loaderCfg;
   const name = c.creatorName||'Debangshu Sen';
   const link = c.creatorLink||'https://www.instagram.com/debangshusen15';
   const copy = c.copyright||'CLASS 12 ( 2025-26 )';
   const tag  = c.tagline||'All memories are preserved forever ❤️';
+  const igLink = c.igLink || 'https://www.instagram.com/dscm_12_squad_/';
+  const fbLink = c.fbLink || 'https://www.facebook.com/profile.php?id=61587983219896';
 
-  document.querySelectorAll('.site-footer').forEach(f=>f.remove());
+  const igSvg = `<svg width="32" height="32" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="igG" cx="19.38" cy="42.035" r="44.899" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#ffd676"/><stop offset=".25" stop-color="#f2a454"/><stop offset=".38" stop-color="#f05c3c"/><stop offset=".52" stop-color="#c22f86"/><stop offset=".74" stop-color="#6666ad"/><stop offset=".88" stop-color="#5c6cb2"/></radialGradient></defs><path fill="url(#igG)" d="M24 4c-5.42 0-6.1.02-8.23.12S12.22 4.6 10.8 5.28a10.15 10.15 0 0 0-5.52 5.52C4.6 12.22 4.34 13.58 4.12 15.77S4 18.58 4 24s.02 6.1.12 8.23.48 3.55 1.16 4.97a10.15 10.15 0 0 0 5.52 5.52c1.42.68 2.78.94 4.97 1.16S18.58 44 24 44s6.1-.02 8.23-.12 3.55-.48 4.97-1.16a10.15 10.15 0 0 0 5.52-5.52c.68-1.42.94-2.78 1.16-4.97S44 29.42 44 24s-.02-6.1-.12-8.23-.48-3.55-1.16-4.97a10.15 10.15 0 0 0-5.52-5.52C35.78 4.6 34.42 4.34 32.23 4.12S29.42 4 24 4z"/><path fill="#fff" d="M24 10.86c-3.56 0-4.01.02-5.41.08s-2.36.28-3.2.59a6.46 6.46 0 0 0-3.86 3.86c-.31.84-.53 1.8-.59 3.2s-.08 1.85-.08 5.41.02 4.01.08 5.41.28 2.36.59 3.2a6.46 6.46 0 0 0 3.86 3.86c.84.31 1.8.53 3.2.59s1.85.08 5.41.08 4.01-.02 5.41-.08 2.36-.28 3.2-.59a6.46 6.46 0 0 0 3.86-3.86c.31-.84.53-1.8.59-3.2s.08-1.85.08-5.41-.02-4.01-.08-5.41-.28-2.36-.59-3.2a6.46 6.46 0 0 0-3.86-3.86c-.84-.31-1.8-.53-3.2-.59s-1.85-.08-5.41-.08zm0 2.37c3.5 0 3.92.01 5.3.08 1.28.06 1.97.27 2.44.45a4.08 4.08 0 0 1 2.5 2.5c.18.47.39 1.16.45 2.44.07 1.38.08 1.8.08 5.3s-.01 3.92-.08 5.3c-.06 1.28-.27 1.97-.45 2.44a4.08 4.08 0 0 1-2.5 2.5c-.47.18-1.16.39-2.44.45-1.38.07-1.8.08-5.3.08s-3.92-.01-5.3-.08c-1.28-.06-1.97-.27-2.44-.45a4.08 4.08 0 0 1-2.5-2.5c-.18-.47-.39-1.16-.45-2.44-.07-1.38-.08-1.8-.08-5.3s.01-3.92.08-5.3c.06-1.28.27-1.97.45-2.44a4.08 4.08 0 0 1 2.5-2.5c.47-.18 1.16-.39 2.44-.45 1.38-.07 1.8-.08 5.3-.08z"/><circle fill="#fff" cx="24" cy="24" r="4.85"/><path fill="url(#igG)" d="M24 17.15a6.85 6.85 0 1 0 0 13.7 6.85 6.85 0 0 0 0-13.7z"/><circle fill="#fff" cx="31.35" cy="16.65" r="1.6"/></svg>`;
+  const fbSvg = `<svg width="32" height="32" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="24" fill="#1877F2"/><path fill="#fff" d="M33.12 30.94l.93-6.07h-5.82v-3.94c0-1.66.81-3.28 3.42-3.28h2.65v-5.17s-2.4-.41-4.7-.41c-4.8 0-7.93 2.91-7.93 8.17v4.63h-5.33v6.07h5.33V44.7a21.14 21.14 0 0 0 6.56 0V30.94h4.89z"/></svg>`;
+
+  const getSocialsHTML = () => {
+    return `
+      <div class="footer-socials" style="display:flex; justify-content:center; align-items:center; gap:24px; margin-top:18px;">
+        <a href="${igLink}" target="_blank" style="display:inline-block; transition:transform 0.2s ease;" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'" title="Instagram">
+          ${igSvg}
+        </a>
+        <a href="${fbLink}" target="_blank" style="display:inline-block; transition:transform 0.2s ease;" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'" title="Facebook">
+          ${fbSvg}
+        </a>
+      </div>
+    `;
+  };
+
+  document.querySelectorAll('.page:not(#hero) .site-footer').forEach(f=>f.remove());
   document.querySelectorAll('.page').forEach(pg=>{
     if(pg.id!=='admin' && pg.id!=='hero'){
       const f=document.createElement('div');f.className='site-footer';
       f.style.cssText='text-align:center; padding:40px 20px 120px;';
 
       const a=document.createElement('a');a.className='site-footer-link';a.target='_blank';
-      a.style.cssText='display:block;font-family:var(--f-hand);font-size:28px;color:var(--gold);text-decoration:none;margin-bottom:12px;';
+      a.style.cssText='display:block;font-family:var(--f-hand);font-size:28px;color:#d4af37;text-decoration:none;margin-bottom:12px;';
       a.textContent='Made by '+name; a.href=link;
 
       const cp=document.createElement('div');cp.className='site-footer-copy';
@@ -1295,6 +1434,12 @@ function applyFooterUI(){
       cp.innerHTML=`${copy}<br><span style="color:#888;">${tag}</span>`;
 
       f.appendChild(a);f.appendChild(cp);
+      
+      const socialsContainer = document.createElement('div');
+      socialsContainer.innerHTML = getSocialsHTML();
+      const socialsEl = socialsContainer.querySelector('.footer-socials');
+      if(socialsEl) f.appendChild(socialsEl);
+
       const inner=pg.querySelector('.inner-page');
       if(inner) inner.appendChild(f); else pg.appendChild(f);
     }
@@ -1306,4 +1451,22 @@ function applyFooterUI(){
   if(heroCopy) heroCopy.textContent=copy;
   const heroTag = document.getElementById('fTaglineHero');
   if(heroTag) heroTag.textContent=tag;
+
+  const heroSocials = document.getElementById('fSocialsHero');
+  if(heroSocials){
+    heroSocials.innerHTML = `
+      <a href="${igLink}" target="_blank" style="display:inline-block; transition:transform 0.2s ease;" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'" title="Instagram">
+        ${igSvg}
+      </a>
+      <a href="${fbLink}" target="_blank" style="display:inline-block; transition:transform 0.2s ease;" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'" title="Facebook">
+        ${fbSvg}
+      </a>
+    `;
+  }
+  } catch(e) {
+    console.error('applyFooterUI error:', e);
+  }
 }
+
+
+
